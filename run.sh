@@ -7,9 +7,8 @@ echo "Starting in: $(pwd)"
 if [ "$(basename "$(pwd)")" = "build" ]; then
   echo "Currently in 'build', moving up..."
   cd ..
+  echo "Now in: $(pwd)" # Should be the parent directory of 'build'
 fi
-
-echo "Now in: $(pwd)" # Should be the parent directory of 'build'
 
 echo "Compiling..."
 ./compile.sh
@@ -18,5 +17,4 @@ echo "Changing to build directory..."
 cd build/
 
 echo "Running executable..."
-# Note: The path to the image assumes 'build' is directly under the dir where compile.sh is.
-./main 
+./CV_Final_Project # CMake project name (exe)
