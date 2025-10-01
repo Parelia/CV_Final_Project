@@ -3,11 +3,16 @@ project(CV_Final_Project)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Include directories
+include_directories(include)
 
 # Source files
 set(SOURCES
     main.cpp
+    src/Parser.cpp
+    src/Utils.cpp
 )
 
 # Find OpenCV
