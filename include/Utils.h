@@ -10,15 +10,12 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/flann.hpp>
 
-namespace Utils {
-    struct offset {
-        int dx;
-        int dy;
-    };
-    
-    void cut_circle_borders(const cv::Mat&, cv::Mat&, offset&);
+namespace Utils { 
+    void cut_circle_borders(const cv::Mat&, cv::Mat&, cv::Point&);
 
-    void save_boxes(std::vector<cv::Rect>&, const std::vector<cv::Vec3f>&, const cv::Mat&, const offset&);
+    void refined_threshold(const cv::Mat&, cv::Mat&);
+
+    void save_boxes(std::vector<cv::Rect>&, const std::vector<cv::Vec3f>&, const cv::Mat&, const cv::Point&);
     void save_boxes(std::vector<cv::Rect>&, const std::vector<cv::Vec3f>&, const cv::Mat&);
 
     void clean_boxes(std::vector<cv::Rect>&, int);

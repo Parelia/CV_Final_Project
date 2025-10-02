@@ -16,5 +16,32 @@ echo "Compiling..."
 echo "Changing to build directory..."
 cd build/
 
-echo "Running executable..."
-./CV_Final_Project # CMake project name (exe)
+echo "Running executable..." # CMake project name (exe)
+./CV_Final_Project "IMG_20150621_112023"
+
+img_list=(
+  "IMG_20150621_112023"
+  "IMG_20150621_112043"
+  "IMG_20150621_112116"
+  "IMG_20150621_112138"
+  "IMG_20150621_112227"
+  "IMG_20150714_093512"
+  "IMG_20150714_093600"
+  "IMG_20150714_093636"
+  "IMG_20150714_093715"
+  "IMG_20150714_093806"
+  "IMG_20150724_102330"
+  "IMG_20150724_102843"
+  "IMG_20150724_102951"
+  "IMG_20150724_102054"
+  "IMG_20150724_102233"
+  "IMG_20150725_123938"
+  "IMG_20150725_123606"
+  "IMG_20150725_123830"
+  "IMG_20150725_123213"
+  "IMG_20150725_123847"
+)
+
+#for img in "${img_list[@]}"; do
+  #./CV_Final_Project $img
+#done

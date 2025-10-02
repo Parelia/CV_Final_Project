@@ -6,7 +6,7 @@
 
 #include "Utils.h"
 
-void Utils::cut_circle_borders(const cv::Mat& src, cv::Mat& dst, Utils::offset& off) {
+void Utils::cut_circle_borders(const cv::Mat& src, cv::Mat& dst, cv::Point& off) {
     // Mask for non black pixel
     if(src.channels() == 1) return;
     cv::Mat gray;
@@ -29,13 +29,44 @@ void Utils::cut_circle_borders(const cv::Mat& src, cv::Mat& dst, Utils::offset& 
 
     // Cut area
     dst = src(cv::Rect(minX, minY, width, height)).clone();
-    off.dx = minX;
-    off.dy = minY;
+    off.x = minX;
+    off.y = minY;
 
     return;
 }
 
-void Utils::save_boxes(std::vector<cv::Rect>& dst, const std::vector<cv::Vec3f>& circles, const cv::Mat& src, const Utils::offset& off) {
+void Utils::refined_threshold(const cv::Mat& src, cv::Mat& dst) {
+    if(src.channels() == 1) return;
+
+    cv::Mat gray;
+    cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
+
+    cv::Mat mask = gray.clone() > 10;
+    cv::bitwise_not(mask, mask);
+    
+    // ADJUST PARAMETERS!!!!
+    cv::threshold(gray, dst, 165, 255, 0);
+    cv::add(dst, mask, dst);
+    cv::morphologyEx(dst, dst, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)), cv::Point(-1,-1), 4);
+    
+    // cv::erode(dst, dst, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)), cv::Point(-1,-1), 3);
+    cv::dilate(dst, dst, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)), cv::Point(-1,-1), 2);
+
+    // 2. Binarizza (Otsu per esempio)
+    //cv::threshold(gray, thresh, 155, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+    // cv::adaptiveThreshold(gray, thresh, 255,
+    //     cv::ADAPTIVE_THRESH_MEAN_C, // o GAUSSIAN_C
+    //     cv::THRESH_BINARY,
+    //     11, // blocco
+    //     2); // costante sottratta
+
+    //cv::morphologyEx(thresh, thresh, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3,3)), cv::Point(-1,-1), 2);
+
+    return;
+}
+
+
+void Utils::save_boxes(std::vector<cv::Rect>& dst, const std::vector<cv::Vec3f>& circles, const cv::Mat& src, const cv::Point& off) {
     for (int i = 0; i < circles.size(); i++) {
         // Set safe bounding boxes
         int minX = std::max((int) std::round(circles[i][0] - circles[i][2]), 0);
@@ -43,7 +74,7 @@ void Utils::save_boxes(std::vector<cv::Rect>& dst, const std::vector<cv::Vec3f>&
         int maxX = std::min((int) std::round(circles[i][0] + circles[i][2]), src.cols);
         int maxY = std::min((int) std::round(circles[i][1] + circles[i][2]), src.rows);
 
-        dst.push_back(std::move(cv::Rect(minX + off.dx, minY + off.dy, maxX - minX, maxY - minY)));
+        dst.push_back(std::move(cv::Rect(minX + off.x, minY + off.y, maxX - minX, maxY - minY)));
     }
     return;
 }
