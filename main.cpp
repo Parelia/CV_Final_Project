@@ -9,7 +9,6 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/photo.hpp>
 #include <iostream>
-#include <numeric>
 #include "Parser.h"
 #include "Utils.h"
 
@@ -22,7 +21,7 @@ void img_show(cv::Mat img, std::string window_name) {
 }
 
 int main(int argc, char* argv[]) {
-    if(argc != 2) {
+    if(argc != 3) {
         std::cerr << "Missing input image (required)" << std::endl;
         return -1;
     }
@@ -50,6 +49,8 @@ int main(int argc, char* argv[]) {
 
     img_show(thresh, "thresh");
 
+    //try connected without neg and fill the zone, then super erode
+
     // -------------------------------------------------------------------------------------------
     // Find valid connected components
     cv::Mat labels, stats, centroids;
@@ -57,7 +58,10 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < components; i++) { // label i = 0 means background
         int area = stats.at<int>(i, cv::CC_STAT_AREA);
         // std::cout << area << std::endl;
-        if (area <= 5000 || area >= 50000) labels.setTo(0, labels == i); 
+        if (area <= 5000 || area >= 50000) {
+            labels.setTo(0, labels == i);
+            stats.at<int>(i, cv::CC_STAT_AREA) = 0;
+        }
     }
 
     // Save connected components bounding boxes
@@ -100,7 +104,6 @@ int main(int argc, char* argv[]) {
 
     // Apply watershed
     // cv::watershed(cutted_image, markers);
-
     // -------------------------------------------------------------------------------------------
     
 
@@ -125,17 +128,20 @@ int main(int argc, char* argv[]) {
     // operazione rimozione regioni troppo grandi
     std::vector<cv::Rect> boundingBoxes;
     for (int i = 1; i < stats.rows; i++) {
-        // Crea una maschera binaria per questa etichetta
-        cv::Mat mask = (labels == i);
+        // std::cout << area << std::endl;
+        if (stats.at<int>(i, cv::CC_STAT_AREA) != 0) {
+            // Crea una maschera binaria per questa etichetta
+            cv::Mat mask = (labels == i);
 
-        // Trova i contorni della maschera
-        std::vector<std::vector<cv::Point>> contours;
-        cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+            // Trova i contorni della maschera
+            std::vector<std::vector<cv::Point>> contours;
+            cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-        if (!contours.empty()) {
-            // Calcola il bounding box del primo contorno
-            cv::Rect bbox = cv::boundingRect(contours[0]);
-            boundingBoxes.push_back(bbox + diff);
+            if (!contours.empty()) {
+                // Calcola il bounding box del primo contorno
+                cv::Rect bbox = cv::boundingRect(contours[0]);
+                boundingBoxes.push_back(bbox + diff);
+            }
         }
     }
 
@@ -166,6 +172,7 @@ int main(int argc, char* argv[]) {
     // std::vector<double> out(std::move(Utils::compute_IoU(GT_Bboxes, CcBoxes)));
     std::vector<double> out(std::move(Utils::compute_IoU(GT_Bboxes, boundingBoxes)));
 
+
     // View results
     // std::cout << "size: " << image_boxes.size() << std::endl;
     // std::cout << "size: " << CcBoxes.size() << std::endl;
@@ -174,18 +181,21 @@ int main(int argc, char* argv[]) {
     int i=0; double count=0;
     for(const auto& d : out)
         if(d > 0) {
-            // std::cout << std::to_string(d) << std::endl;
             count += d;
             i++;
         }
-    std::cout << std::to_string(count / i * 100) << std::endl;
-    std::cout << std::to_string(count / out.size() * 100) << std::endl; // std::accumulate(out.begin(), out.end(), 0)
+    std::cout << "Matched: " << std::to_string(count / i * 100) << std::endl;
+    std::cout << "Global: " << std::to_string(count / out.size() * 100) << std::endl;
 
 
-    //cv::imwrite stuff
-    // to be implemented
+
+    // Output dataset
+    // if (!std::filesystem::exists(argv[2])) std::filesystem::create_directories(argv[2]);
+    // for (int i = 0; i < boundingBoxes.size(); i++)
+    //     if(!cv::imwrite(std::string(argv[2]) + std::string(argv[1]) + "_" + std::to_string(i+1) + ".jpg", test_image(boundingBoxes[i])))
+    //         std::cerr << "Saving image error" << std::endl;
+
             
-
     cv::waitKey(0);
     return 0;
 }
