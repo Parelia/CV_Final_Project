@@ -11,7 +11,7 @@
 #include <opencv2/flann.hpp>
 
 namespace Utils { 
-    void cut_circle_borders(const cv::Mat&, cv::Mat&, cv::Point&);
+    void cut_background(const cv::Mat&, cv::Mat&, cv::Point&);
 
     void refined_threshold(const cv::Mat&, cv::Mat&);
 

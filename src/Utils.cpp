@@ -6,7 +6,9 @@
 
 #include "Utils.h"
 
-void Utils::cut_circle_borders(const cv::Mat& src, cv::Mat& dst, cv::Point& off) {
+#include <opencv2/highgui.hpp>
+
+void Utils::cut_background(const cv::Mat& src, cv::Mat& dst, cv::Point& off) {
     // Mask for non black pixel
     if(src.channels() == 1) return;
     cv::Mat gray;
@@ -38,30 +40,35 @@ void Utils::cut_circle_borders(const cv::Mat& src, cv::Mat& dst, cv::Point& off)
 void Utils::refined_threshold(const cv::Mat& src, cv::Mat& dst) {
     if(src.channels() == 1) return;
 
+    cv::Mat temp_dst;
     cv::Mat gray;
     cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
 
-    cv::Mat mask = gray.clone() > 10;
-    cv::bitwise_not(mask, mask);
+    cv::Mat mask = gray <= 10;
     
     // ADJUST PARAMETERS!!!!
-    cv::threshold(gray, dst, 165, 255, 0);
-    cv::add(dst, mask, dst);
-    cv::morphologyEx(dst, dst, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)), cv::Point(-1,-1), 4);
+    cv::threshold(gray, temp_dst, 155, 255, cv::THRESH_BINARY_INV);
+    cv::subtract(temp_dst, mask, temp_dst);
+
+    cv::morphologyEx(temp_dst, temp_dst, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)), cv::Point(-1,-1), 4);
+    cv::morphologyEx(temp_dst, temp_dst, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)), cv::Point(-1,-1), 4);
     
-    // cv::erode(dst, dst, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)), cv::Point(-1,-1), 3);
-    cv::dilate(dst, dst, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)), cv::Point(-1,-1), 2);
+    cv::erode(temp_dst, temp_dst, cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(5, 5)), cv::Point(-1,-1), 2); 
 
-    // 2. Binarizza (Otsu per esempio)
-    //cv::threshold(gray, thresh, 155, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
-    // cv::adaptiveThreshold(gray, thresh, 255,
-    //     cv::ADAPTIVE_THRESH_MEAN_C, // o GAUSSIAN_C
-    //     cv::THRESH_BINARY,
-    //     11, // blocco
-    //     2); // costante sottratta
+    // -------------------------------------------------------------------------------------------
+    cv::Mat temp, mask_2;
+    cv::bitwise_not(temp_dst, temp_dst);
+    cv::connectedComponents(temp_dst, temp);
 
-    //cv::morphologyEx(thresh, thresh, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3,3)), cv::Point(-1,-1), 2);
+    temp.convertTo(mask_2, CV_8U);
+    mask_2.setTo(255, mask_2 > 1);
+    cv::subtract(temp_dst, mask_2, temp_dst);
+    // -------------------------------------------------------------------------------------------
 
+    cv::bitwise_not(temp_dst, temp_dst);
+    cv::erode(temp_dst, temp_dst, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)), cv::Point(-1,-1), 4);
+
+    dst = temp_dst.clone();
     return;
 }
 
@@ -101,14 +108,39 @@ void Utils::clean_boxes(std::vector<cv::Rect>& src, int threshold) {
 }
 
 std::vector<double> Utils::compute_IoU(const std::vector<cv::Rect>& GT_boxes, const std::vector<cv::Rect>& det_boxes) {
-        // Translate det_boxes into a tl dataset
+    
+
+    if (det_boxes.empty() || GT_boxes.empty()) {
+        std::cerr << "[compute_IoU] Errore: det_boxes o GT_boxes è vuoto." << std::endl;
+        return {}; }
+    
+    
+
+    // Translate det_boxes into a tl dataset
     cv::Mat dataset(det_boxes.size(), 2, CV_32F);
     for (int i = 0; i < det_boxes.size(); i++)  {
         dataset.at<float>(i, 0) = det_boxes[i].x;
         dataset.at<float>(i, 1) = det_boxes[i].y;
     }
 
-    cv::flann::Index flannIndex(dataset, cv::flann::KDTreeIndexParams(1), cvflann::FLANN_DIST_EUCLIDEAN );
+    // cv::flann::Index flannIndex(dataset, cv::flann::KDTreeIndexParams(1), cvflann::FLANN_DIST_EUCLIDEAN);
+
+
+    try {
+        cv::flann::Index flannIndex(dataset, cv::flann::KDTreeIndexParams(1), cvflann::FLANN_DIST_EUCLIDEAN);
+        ...
+    } catch (const cv::Exception& e) {
+        std::cerr << "[compute_IoU] OpenCV FLANN error: " << e.what() << std::endl;
+        return {};
+    }
+
+
+
+
+
+
+
+
 
     std::vector<int> indices(1);
     std::vector<float> dists(1);
