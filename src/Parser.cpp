@@ -1,27 +1,28 @@
 /* 
-    #############################
-    #  Author: Parussolo Elia   #
-    #############################
+	###############################
+    #  Author: Gabriele Trevisan  #
+    ###############################
 */
 
 #include "Parser.h"
 
 // Handle and extract .txt file content
 std::string Parser::get_file_content(const std::filesystem::path& file_path) {
+	// 1st check
     if(!std::filesystem::exists(file_path)) {
-        std::cerr << "Error: invalid file path\n";
+        std::cerr << "[Parser] Error: invalid file path\n";
         return "";
     }
     if(file_path.extension() != ".txt") {
-        std::cerr << "Error: invalid file type\n";
+        std::cerr << "[Parser] Error: invalid file type\n";
         return "";
     }
 
     std::ifstream file_stream = std::ifstream(file_path);
-
-    // Double check??
+	
+	// 2nd check
     if(!file_stream.is_open() || !file_stream.good()){
-        std::cerr << "Error: could not read from the filestream\n";
+        std::cerr << "[Parser] Error: could not read from the filestream\n";
         return "";
     }
 

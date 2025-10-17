@@ -6,8 +6,6 @@
 
 #include "Utils.h"
 
-#include <opencv2/highgui.hpp>
-
 void Utils::cut_background(const cv::Mat& src, cv::Mat& dst, cv::Point& off) {
     // Mask for non black pixel
     if(src.channels() == 1) return;
@@ -37,84 +35,38 @@ void Utils::cut_background(const cv::Mat& src, cv::Mat& dst, cv::Point& off) {
     return;
 }
 
+
 void Utils::refined_threshold(const cv::Mat& src, cv::Mat& dst) {
-    if(src.channels() == 1) return;
-
-    cv::Mat temp_dst;
     cv::Mat gray;
-    cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
-
+    if(src.channels() == 1) gray = src.clone();
+	else {
+		cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
+	}
+	
+	cv::Mat temp_dst;
     cv::Mat mask = gray <= 10;
-    
-    // ADJUST PARAMETERS!!!!
-    cv::threshold(gray, temp_dst, 155, 255, cv::THRESH_BINARY_INV);
-    cv::subtract(temp_dst, mask, temp_dst);
-
-    cv::morphologyEx(temp_dst, temp_dst, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)), cv::Point(-1,-1), 4);
-    cv::morphologyEx(temp_dst, temp_dst, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)), cv::Point(-1,-1), 4);
-    
-    cv::erode(temp_dst, temp_dst, cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(5, 5)), cv::Point(-1,-1), 2); 
-
-    // -------------------------------------------------------------------------------------------
-    cv::Mat temp, mask_2;
-    cv::bitwise_not(temp_dst, temp_dst);
-    cv::connectedComponents(temp_dst, temp);
-
-    temp.convertTo(mask_2, CV_8U);
-    mask_2.setTo(255, mask_2 > 1);
-    cv::subtract(temp_dst, mask_2, temp_dst);
-    // -------------------------------------------------------------------------------------------
-
-    cv::bitwise_not(temp_dst, temp_dst);
-    cv::erode(temp_dst, temp_dst, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)), cv::Point(-1,-1), 4);
+   
+    cv::adaptiveThreshold(gray, temp_dst, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, 47, 2);
+	cv::subtract(temp_dst, mask, temp_dst); // remove radial distortion
+	
+	cv::erode(temp_dst, temp_dst, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)), cv::Point(-1,-1), 3);
+    cv::morphologyEx(temp_dst, temp_dst, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3,3)), cv::Point(-1,-1), 1);
 
     dst = temp_dst.clone();
     return;
 }
 
 
-void Utils::save_boxes(std::vector<cv::Rect>& dst, const std::vector<cv::Vec3f>& circles, const cv::Mat& src, const cv::Point& off) {
-    for (int i = 0; i < circles.size(); i++) {
-        // Set safe bounding boxes
-        int minX = std::max((int) std::round(circles[i][0] - circles[i][2]), 0);
-        int minY = std::max((int) std::round(circles[i][1] - circles[i][2]), 0);
-        int maxX = std::min((int) std::round(circles[i][0] + circles[i][2]), src.cols);
-        int maxY = std::min((int) std::round(circles[i][1] + circles[i][2]), src.rows);
-
-        dst.push_back(std::move(cv::Rect(minX + off.x, minY + off.y, maxX - minX, maxY - minY)));
-    }
-    return;
-}
-
-void Utils::save_boxes(std::vector<cv::Rect>& dst, const std::vector<cv::Vec3f>& circles, const cv::Mat& src) {
-    for (int i = 0; i < circles.size(); i++) {
-        // Set safe bounding boxes
-        int minX = std::max((int) std::round(circles[i][0] - circles[i][2]), 0);
-        int minY = std::max((int) std::round(circles[i][1] - circles[i][2]), 0);
-        int maxX = std::min((int) std::round(circles[i][0] + circles[i][2]), src.cols);
-        int maxY = std::min((int) std::round(circles[i][1] + circles[i][2]), src.rows);
-
-        dst.push_back(std::move(cv::Rect(minX, minY, maxX - minX, maxY - minY)));
-    }
-    return;
-}
-
-void Utils::clean_boxes(std::vector<cv::Rect>& src, int threshold) {
-    int i=0;
-    for(const auto& rect : src)  {
-        if(rect.area() < threshold) src.erase(src.begin() + i);
-        else i++;
-    }
-}
-
 std::vector<double> Utils::compute_IoU(const std::vector<cv::Rect>& GT_boxes, const std::vector<cv::Rect>& det_boxes) {
-    
+    if (det_boxes.empty()) {
+        std::cerr << "[Utils][compute_IoU] Error: det_boxes is empty\n";
+ 
+        }
+    if (GT_boxes.empty()) {
+        std::cerr << "[Utils][compute_IoU] Error: GT_boxes is empty\n";
 
-    if (det_boxes.empty() || GT_boxes.empty()) {
-        std::cerr << "[compute_IoU] Errore: det_boxes o GT_boxes è vuoto." << std::endl;
-        return {}; }
-    
-    
+        }
+   
 
     // Translate det_boxes into a tl dataset
     cv::Mat dataset(det_boxes.size(), 2, CV_32F);
@@ -123,23 +75,15 @@ std::vector<double> Utils::compute_IoU(const std::vector<cv::Rect>& GT_boxes, co
         dataset.at<float>(i, 1) = det_boxes[i].y;
     }
 
-    // cv::flann::Index flannIndex(dataset, cv::flann::KDTreeIndexParams(1), cvflann::FLANN_DIST_EUCLIDEAN);
-
+    cv::flann::Index flannIndex;
 
     try {
-        cv::flann::Index flannIndex(dataset, cv::flann::KDTreeIndexParams(1), cvflann::FLANN_DIST_EUCLIDEAN);
-        ...
+        flannIndex.build(dataset, cv::flann::KDTreeIndexParams(1), cvflann::FLANN_DIST_EUCLIDEAN);
+     
     } catch (const cv::Exception& e) {
-        std::cerr << "[compute_IoU] OpenCV FLANN error: " << e.what() << std::endl;
+        std::cerr << "[Utils][compute_IoU] OpenCV FLANN error: " << e.what() << std::endl;
         return {};
     }
-
-
-
-
-
-
-
 
 
     std::vector<int> indices(1);
@@ -167,16 +111,11 @@ std::vector<double> Utils::compute_IoU(const std::vector<cv::Rect>& GT_boxes, co
     return IoUs;
 }
 
+
 double Utils::IoU(const cv::Rect& a, const cv::Rect& b) {
     int inter = (a & b).area();
     int uni = a.area() + b.area() - inter;
 
     if (uni == 0) return 0.0;
     return static_cast<double>(inter) / uni;
-}
-
-double Utils::Rect_distance(const cv::Rect& a, const cv::Rect& b) {
-    double dx = a.x + a.width / 2 - b.x + b.width / 2;
-    double dy = a.y + a.height / 2 - b.y + b.height / 2;
-    return std::sqrt(dx * dx + dy * dy);
 }
