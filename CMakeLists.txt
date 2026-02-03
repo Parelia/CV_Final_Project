@@ -13,6 +13,7 @@ set(SOURCES
     main.cpp
     src/Parser.cpp
     src/Utils.cpp
+    src/DatasetBuilder.cpp
 )
 
 # Find OpenCV

@@ -11,6 +11,11 @@
 #include <iostream>
 #include "Parser.h"
 #include "Utils.h"
+#include "DatasetBuilder.h"
+
+#define IMG_ARG 1
+const std::string DATASET_PATH = "Malaria_Dataset";
+const std::string DATASET_CROPPED_PATH = "Malaria_Dataset_Cropped";
 
 // Compact the code
 void img_show(cv::Mat img, std::string window_name) {
@@ -22,17 +27,37 @@ void img_show(cv::Mat img, std::string window_name) {
 }
 
 int main(int argc, char* argv[]) {
-    if(argc != 3) {
+    if(argc != 2) {
         std::cerr << "[main] Missing input image (required)\n";
         return -1;
     }
-    
-    cv::Mat test_image = cv::imread("../Malaria_Dataset/Img/" + std::string(argv[1]) + ".jpg");
+
+    // Check if database needs to be built
+    if(!std::filesystem::exists("../" + DATASET_CROPPED_PATH)) {
+        std::filesystem::create_directories("../" + DATASET_CROPPED_PATH);
+    }
+    if(
+        !std::filesystem::exists("../" + DATASET_CROPPED_PATH + "/Parasitized") 
+        || !std::filesystem::exists("../" + DATASET_CROPPED_PATH + "/Uninfected")
+    ) {
+        std::cout << "[main] Building ground truth dataset...\n";
+        std::filesystem::create_directories("../" + DATASET_CROPPED_PATH + "/Parasitized");
+        std::filesystem::create_directories("../" + DATASET_CROPPED_PATH + "/Uninfected");
+        DatasetBuilder::build_cropped_dataset(
+            "../" + DATASET_PATH + "/GT/", 
+            "../" + DATASET_PATH + "/Img/", 
+            "../" + DATASET_CROPPED_PATH + "/Parasitized/", 
+            "../" + DATASET_CROPPED_PATH + "/Uninfected/"
+        );
+        std::cout << "[main] Ground truth dataset built!\n";
+    }
+    exit(0);
+    cv::Mat test_image = cv::imread("../" + DATASET_PATH + "/Img/" + std::string(argv[IMG_ARG]) + ".jpg");
     
     if(test_image.empty()) {
         std::cerr << "[main] Error: test_image is empty\n";
 		return 0;
-     }
+    }
      
     
     // Cut image
@@ -43,7 +68,7 @@ int main(int argc, char* argv[]) {
     // Thresholding
     cv::Mat thresh;
     Utils::refined_threshold(cutted_image, thresh);
-    //img_show(thresh, "thresh");
+    ////img_show(thresh, "thresh");
 
 
     // -------------------------------------------------------------------------------------------
@@ -67,7 +92,7 @@ int main(int argc, char* argv[]) {
     // View results
     cv::Mat markers;
     labels.convertTo(markers, CV_8U);
-    img_show(markers, "markers");
+    //img_show(markers, "markers");
     // -------------------------------------------------------------------------------------------
  
 
@@ -76,7 +101,7 @@ int main(int argc, char* argv[]) {
     cv::watershed(cutted_image, labels);
     
     labels.convertTo(markers, CV_8U);
-    img_show(markers, "markers after w1");
+    //img_show(markers, "markers after w1");
     
     
     for(int i = 1; i < stats.rows; i++) {  // label 0 = background
@@ -120,7 +145,7 @@ int main(int argc, char* argv[]) {
 	// View results
     cv::Mat markers2;
 	labels2.convertTo(markers2, CV_8U);
-    img_show(markers2, "markers before water2");
+    //img_show(markers2, "markers before water2");
 	
 	
 	// Apply watershed #2
@@ -152,7 +177,7 @@ int main(int argc, char* argv[]) {
 	// View results
     cv::Mat markers3;
     labels2.convertTo(markers3, CV_8U);
-    img_show(markers3, "markers after water2");
+    //img_show(markers3, "markers after water2");
     
  
     // Draw and paint borders(-1) **
@@ -163,14 +188,14 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-    img_show(result, "result");
+    //img_show(result, "result");
     // -------------------------------------------------------------------------------------------
 
 
     // -------------------------------------------------------------------------------------------
     // Upload file and get original dataset bounding boxes
     std::vector<Parser::GT_Entry> entries;
-    Parser::parse_file(Parser::get_file_content("../Malaria_Dataset/GT/" + std::string(argv[1]) + ".txt"), entries);
+    Parser::parse_file(Parser::get_file_content("../" + DATASET_PATH + "/GT/" + std::string(argv[1]) + ".txt"), entries);
     
     if(entries.empty()) {
         std::cerr << "[main] Error: entries is empty\n";
@@ -183,18 +208,18 @@ int main(int argc, char* argv[]) {
 
 
     // Compute new dataset for deep learning
-    std::string target_parasitized = "../" + std::string(argv[2]) + "/Parasitized";
+    std::string target_parasitized = "../" + DATASET_CROPPED_PATH + "/Parasitized";
     if(!std::filesystem::exists(target_parasitized)) std::filesystem::create_directories(target_parasitized);
-    std::string target_uninfected = "../" + std::string(argv[2]) + "/Uninfected";
+    std::string target_uninfected = "../" + DATASET_CROPPED_PATH + "/Uninfected";
     if(!std::filesystem::exists(target_uninfected)) std::filesystem::create_directories(target_uninfected);
     
 	for(int i = 0; i < GT_Bboxes.size(); i++) {
 		if(entries[i].infected) {
-			if(!cv::imwrite(target_parasitized + "/" + std::string(argv[1]) + "_" + std::to_string(entries[i].n_cell) + ".jpg", test_image(GT_Bboxes[i])))
+			if(!cv::imwrite(target_parasitized + "/" + std::string(argv[IMG_ARG]) + "_" + std::to_string(entries[i].n_cell) + ".jpg", test_image(GT_Bboxes[i])))
 				std::cerr << "Saving image error" << std::endl;
 		}
 		else {
-			if(!cv::imwrite(target_uninfected + "/" + std::string(argv[1]) + "_" + std::to_string(entries[i].n_cell) + ".jpg", test_image(GT_Bboxes[i])))
+			if(!cv::imwrite(target_uninfected + "/" + std::string(argv[IMG_ARG]) + "_" + std::to_string(entries[i].n_cell) + ".jpg", test_image(GT_Bboxes[i])))
 				std::cerr << "Saving image error" << std::endl;
 		}
 	}

@@ -21,7 +21,7 @@ echo "Changing to build directory..."
 cd build/
 
 echo "Running executable..." # CMake project name (exe)
-./CV_Final_Project "IMG_20150621_112023" "Malaria_Dataset_Cropped"
+./CV_Final_Project "IMG_20150621_112023"
 
 img_list=(
   "IMG_20150621_112023"
@@ -46,9 +46,9 @@ img_list=(
   "IMG_20150725_125847"
 )
 
-#for img in "${img_list[@]}"; do
-  #./CV_Final_Project $img "Malaria_Dataset_Cropped/"
-#done
+# for img in "${img_list[@]}"; do
+#   ./CV_Final_Project $img "Malaria_Dataset_Cropped/"
+# done
 
 echo "Changing to main directory..."
 cd ..
