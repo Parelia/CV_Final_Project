@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(CV_Final_Project)
+project(CV_Final_Project_Cropper)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -10,7 +10,7 @@ include_directories(include)
 
 # Source files
 set(SOURCES
-    main.cpp
+    CropperMain.cpp
     src/Parser.cpp
     src/Utils.cpp
     src/DatasetBuilder.cpp
