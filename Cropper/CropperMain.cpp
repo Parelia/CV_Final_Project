@@ -10,19 +10,24 @@
 #include <opencv2/photo.hpp>
 #include <iostream>
 #include "Parser.h"
+#include "ClassifiedParser.h"
 #include "Utils.h"
-#include "DatasetBuilder.h"
 
 #define IMG_ARG 1
 #define PYTHON_ARG 2
+#define MODE_ARG 3
 
 //TODO: clean the code (Put everything in a class and call it from main)
 bool TEST_MODE = false;
+bool QUIET_MODE = false;
 std::string dataset_location;
 
 // Compact the code
-void img_show(cv::Mat img, std::string window_name) {
-    if(!TEST_MODE) {
+void img_show(cv::Mat img, std::string window_name, bool force = false) {
+    if(QUIET_MODE){ // Cannot override quiet mode
+        return;
+    }
+    if(!TEST_MODE && !force) {
         return;
     }
     cv::namedWindow(window_name, cv::WINDOW_NORMAL);
@@ -35,6 +40,12 @@ int main(int argc, char* argv[]) {
         std::cerr << "[main] Missing input image (required)\n";
         return -1;
     }
+    // test mode: 
+    // CV_Final_Project_Cropper --test [dataset_location]
+
+    // normal mode
+    // CV_Final_Project_Cropper [input_image] [python_classifier_script] (optional: --quiet)
+    
     if(argc > 2 && std::string(argv[2]) == "--test") {
         if(argc < 4) {
             std::cerr << "[main] dataset location required in test mode\n";
@@ -47,10 +58,24 @@ int main(int argc, char* argv[]) {
         std::cout << "[main] Test mode enabled.\n";
         std::cout << "[main] Using dataset location: " << dataset_location << std::endl;
         TEST_MODE = true;
+    }else{
+        if(argc < 3) {
+            std::cerr << "[main] Missing python classifier script (required in normal mode)\n";
+            return -1;
+        }
+        if(argc > 3 && std::string(argv[3]) == "--quiet") {
+            QUIET_MODE = true;
+            std::cout << "[main] Quiet mode enabled. No intermediate results will be shown.\n";
+        }
     }
 
     if(!std::filesystem::exists(argv[IMG_ARG])) {
+        // print pwd
+        std::cerr << "[main] Current working directory: " << std::filesystem::current_path() << std::endl;
         std::cerr << "[main] Error: input image does not exist\n";
+        // print FULL path
+        std::cerr << "[main] Error: input image path: " << std::filesystem::absolute(argv[IMG_ARG]) << std::endl;
+
         return -1;
     }
 
@@ -200,7 +225,7 @@ int main(int argc, char* argv[]) {
 
     outputFile.close();
     std::cout << "[main] WaterBoxes written to file: " << outputFileName << std::endl;
-
+ 
     if (!TEST_MODE) {
         std::cout << "[main] Calling classifier" << std::endl;
 
@@ -213,18 +238,46 @@ int main(int argc, char* argv[]) {
             return -1;
         }
 
-        std::cout << "[main] Python classifier script executed successfully." << std::endl;
-    }
+        std::cout << "[main] Python classifier script executed successfully. Please see predictions.txt for the raw output" << std::endl;
 
+        // load predictions.txt
+        std::vector<ClassifiedParser::Classifier_Entry> entries;
+        std::cout << "[main] Parsing classifier output" << std::endl;
+        ClassifiedParser::parse_file(ClassifiedParser::get_file_content("predictions.txt"), entries);
+        if(entries.empty()) {
+            std::cerr << "[main] Error: entries is empty\n";
+            return 0;
+        }
+        std::cout << "[main] Classifier output parsed successfully. Number of entries: " << entries.size() << std::endl;
+        // Draw and paint entries rects
+        for(const auto& e : entries) {
+            cv::Scalar color = e.infected ? cv::Scalar(0, 0, 255) : cv::Scalar(0, 255, 0);
+            cv::rectangle(result, e.rect, color, 2);
+            // print confidence on the top of the rectangle
+            std::string label = std::to_string(e.confidence) + "%";
+            int baseLine;
+            cv::Size labelSize = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
+            cv::rectangle(result, cv::Point(e.rect.x, e.rect.y - labelSize.height - baseLine), cv::Point(e.rect.x + labelSize.width, e.rect.y), color, cv::FILLED);
+            cv::putText(result, label, cv::Point(e.rect.x, e.rect.y - baseLine), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
+        }
+        // save image int outputs/[original_image_name]_result.jpg
+        if(!std::filesystem::exists("outputs")) {
+            std::filesystem::create_directory("outputs");
+        }
+        std::string outputImageName = "outputs/" + std::filesystem::path(argv[IMG_ARG]).stem().string() + "_result.jpg";
+        cv::imwrite(outputImageName, result);
+        std::cout << "[main] Result image saved to: " << outputImageName << std::endl;
 
-    if(TEST_MODE){
+        img_show(result, "result with classifier", true);
+        
+    }else{
         // View results
         cv::Mat markers3;
         labels2.convertTo(markers3, CV_8U);
         img_show(markers3, "markers after water2");
     
         // Draw and paint borders(-1) **
-    for (int i = 0; i < labels2.rows; i++) {
+        for (int i = 0; i < labels2.rows; i++) {
             for (int j = 0; j < labels2.cols; j++) {
                 if (labels2.at<int>(i, j) == -1) {
                     result.at<cv::Vec3b>(i + diff.y, j + diff.x) = cv::Vec3b(255, 0, 0); // border
@@ -266,6 +319,7 @@ int main(int argc, char* argv[]) {
         // -------------------------------------------------------------------------------------------
     }
             
-    cv::waitKey(0);
+    int key;
+    while((key = cv::waitKey(0)) != 27 && key != -1); // 27 is ESC, -1 is window close
     return 0;
 }

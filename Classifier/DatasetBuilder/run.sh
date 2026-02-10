@@ -14,6 +14,12 @@ if [ "$(basename "$(pwd)")" = "build" ]; then
   echo "Now in: $(pwd)" # Should be the parent directory of 'build'
 fi
 
+if [ "$1" = "--no-compile" ]; then
+  echo "Skipping compilation."
+else
+  echo "Compiling..."
+  ./compile.sh
+fi
 echo "Compiling..."
 ./compile.sh
 

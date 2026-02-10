@@ -12,8 +12,8 @@ include_directories(include)
 set(SOURCES
     CropperMain.cpp
     src/Parser.cpp
+    src/ClassifiedParser.cpp
     src/Utils.cpp
-    src/DatasetBuilder.cpp
 )
 
 # Find OpenCV
