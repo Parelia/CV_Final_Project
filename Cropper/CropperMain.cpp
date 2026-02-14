@@ -231,13 +231,13 @@ int main(int argc, char* argv[]) {
 
     // -------------------------------------------------------------------------------------------
     // Write output images
-    if(!std::filesystem::exists("OutputImages")) std::filesystem::create_directory("OutputImages");
+    if(!std::filesystem::exists("OutputImages/Parser")) std::filesystem::create_directories("OutputImages/Parser");
 
     // Draw bounding boxes
     cv::Mat results = test_image.clone();
     for(const auto& box : waterBoxes)
         cv::rectangle(results, box, cv::Scalar(0, 255, 0), 2);
-    cv::imwrite("OutputImages/" + std::string(argv[IMG_ARG]) + "_boxes.png", results);
+    cv::imwrite("OutputImages/Parser/" + std::string(argv[IMG_ARG]) + "_boxes.png", results);
     
     // Draw borders
     results = test_image.clone();
@@ -249,7 +249,7 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-    cv::imwrite("OutputImages/" + std::string(argv[IMG_ARG]) + "_contours.png", results);
+    cv::imwrite("OutputImages/Parser/" + std::string(argv[IMG_ARG]) + "_contours.png", results);
  
     // ---------------------------------- END IMAGE PROCESSING -----------------------------------
 
@@ -290,10 +290,10 @@ int main(int argc, char* argv[]) {
             cv::putText(result, label, cv::Point(e.rect.x, e.rect.y - baseLine), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
         }
         // save image int outputs/[original_image_name]_result.jpg
-        if(!std::filesystem::exists("classifier_outputs")) {
-            std::filesystem::create_directory("classifier_outputs");
+        if(!std::filesystem::exists("OutputImages/Classifier/")) {
+            std::filesystem::create_directory("OutputImages/Classifier/");
         }
-        std::string outputImageName = "classifier_outputs/" + std::filesystem::path(argv[IMG_ARG]).stem().string() + "_result.jpg";
+        std::string outputImageName = "OutputImages/Classifier/" + std::filesystem::path(argv[IMG_ARG]).stem().string() + "_result.jpg";
         cv::imwrite(outputImageName, result);
         std::cout << "[main] Result image saved to: " << outputImageName << std::endl;
 
