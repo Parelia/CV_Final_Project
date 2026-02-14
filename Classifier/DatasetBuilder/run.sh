@@ -1,6 +1,6 @@
-	###############################
-    #  Author: Gabriele Trevisan  #
-    ###############################
+###############################
+#  Author: Gabriele Trevisan  #
+###############################
 
 #!/bin/bash
 set -e # Optional: Exit immediately if a command exits with a non-zero status
@@ -20,8 +20,6 @@ else
   echo "Compiling..."
   ./compile.sh
 fi
-echo "Compiling..."
-./compile.sh
 
 echo "Changing to build directory..."
 cd build/

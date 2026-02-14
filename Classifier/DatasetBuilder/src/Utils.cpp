@@ -36,12 +36,11 @@ void Utils::cut_background(const cv::Mat& src, cv::Mat& dst, cv::Point& off) {
 }
 
 
+// Applies thresholding and morphological operations to clean up elements
 void Utils::refined_threshold(const cv::Mat& src, cv::Mat& dst) {
     cv::Mat gray;
     if(src.channels() == 1) gray = src.clone();
-	else {
-		cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
-	}
+	else cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
 	
 	cv::Mat temp_dst;
     cv::Mat mask = gray <= 10;
@@ -57,6 +56,7 @@ void Utils::refined_threshold(const cv::Mat& src, cv::Mat& dst) {
 }
 
 
+// Compute IoU values over ground truth
 std::vector<double> Utils::compute_IoU(const std::vector<cv::Rect>& GT_boxes, const std::vector<cv::Rect>& det_boxes) {
     if (det_boxes.empty()) {
         std::cerr << "[Utils][compute_IoU] Error: det_boxes is empty\n";
@@ -112,6 +112,7 @@ std::vector<double> Utils::compute_IoU(const std::vector<cv::Rect>& GT_boxes, co
 }
 
 
+// Standard IoU computation
 double Utils::IoU(const cv::Rect& a, const cv::Rect& b) {
     int inter = (a & b).area();
     int uni = a.area() + b.area() - inter;

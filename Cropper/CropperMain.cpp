@@ -9,8 +9,8 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/photo.hpp>
 #include <iostream>
-#include "Parser.h"
 #include "ClassifiedParser.h"
+#include "Parser.h"
 #include "Utils.h"
 
 #define IMG_ARG 1
@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
         std::cout << "[main] Test mode enabled.\n";
         std::cout << "[main] Using dataset location: " << dataset_location << std::endl;
         TEST_MODE = true;
-    }else{
+    } else {
         if(argc < 3) {
             std::cerr << "[main] Missing python classifier script (required in normal mode)\n";
             return -1;
@@ -87,6 +87,7 @@ int main(int argc, char* argv[]) {
     }
      
     
+    // --------------------------------- START IMAGE PROCESSING ----------------------------------
     // Cut image
     cv::Mat cutted_image;
     cv::Point diff;
@@ -95,11 +96,10 @@ int main(int argc, char* argv[]) {
     // Thresholding
     cv::Mat thresh;
     Utils::refined_threshold(cutted_image, thresh);
-    ////img_show(thresh, "thresh");
 
 
     // -------------------------------------------------------------------------------------------
-    // Find connected components
+    // Find connected components #1
     cv::Mat labels;
     cv::Mat stats;
     cv::Mat centroids;
@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
 		return -1;
     }
     
-    // Discard imperfections (small elements)
+    // Discard imperfections (small elements) #1
     for(int i = 1; i < stats.rows; i++) { // label 0 = background
         if(stats.at<int>(i, cv::CC_STAT_AREA) < 500) {
             labels.setTo(0, labels == i);
@@ -116,20 +116,19 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // View results
-    cv::Mat markers;
-    labels.convertTo(markers, CV_8U);
-    img_show(markers, "markers");
-    // -------------------------------------------------------------------------------------------
 
-    // -------------------------------------------------------------------------------------------
+    // // View results
+    // cv::Mat markers;
+    // labels.convertTo(markers, CV_8U);
+    // img_show(markers, "markers");
+
     // Apply watershed #1
     cv::watershed(cutted_image, labels);
     
-    labels.convertTo(markers, CV_8U);
-    img_show(markers, "markers after w1");
-    
-    
+    // // View results
+    // labels.convertTo(markers, CV_8U);
+    // img_show(markers, "markers after w1");
+
     for(int i = 1; i < stats.rows; i++) {  // label 0 = background
         if(stats.at<int>(i, cv::CC_STAT_AREA) != 0) {
             cv::Mat mask = (labels == i);
@@ -138,13 +137,14 @@ int main(int argc, char* argv[]) {
 
             if(!contours.empty()) {
 				cv::Rect temp = cv::boundingRect(contours[0]);
-				if(temp.area() < 800 || temp.area()  > 100000)
+				if(temp.area() < 800 || temp.area() > 100000)
 					labels.setTo(0, labels == i);
 			}
         }	
     }
     
-    
+
+    // -------------------------------------------------------------------------------------------
     // Adjust for second watershed
     cv::Mat labels8u;
 	labels.convertTo(labels8u, CV_8U);
@@ -168,18 +168,20 @@ int main(int argc, char* argv[]) {
 		}	
 	}
 
-	// View results
-    cv::Mat markers2;
-	labels2.convertTo(markers2, CV_8U);
-    img_show(markers2, "markers before water2");
-	
-	
+
+	// // View results
+    // cv::Mat markers2;
+	// labels2.convertTo(markers2, CV_8U);
+    // img_show(markers2, "markers before water2");
+
 	// Apply watershed #2
     cv::watershed(cutted_image, labels2);
-    img_show(markers2, "img after water2");
+
+    // // View results
+    // labels2.convertTo(markers2, CV_8U);
+    // img_show(markers2, "img after water2");
 	
 	// Compute bounding boxes
-	cv::Mat result = test_image.clone();
 	std::vector<cv::Rect> waterBoxes;
 	for(int i = 1; i < stats2.rows; i++) {  // label 0 = background
         if(stats2.at<int>(i, cv::CC_STAT_AREA) != 0) {
@@ -190,18 +192,18 @@ int main(int argc, char* argv[]) {
             if(!contours.empty()) {
 				cv::Rect temp = cv::boundingRect(contours[0]);
 				waterBoxes.push_back(temp + diff);
-				
-				cv::rectangle(result, temp + diff, cv::Scalar(0, 255, 0), 2); //************
 			}
         }	
     }
     
     if(waterBoxes.empty()) {
         std::cerr << "[main] Error: waterBoxes is empty\n";
-		//return 0;
+		return -1;
     }
 
-    // Remove waterBoxes with area greater than 400*400 pixels
+
+    // -------------------------------------------------------------------------------------------
+    // Remove waterBoxes with area greater than 400 * 400 pixels
     waterBoxes.erase(
         std::remove_if(waterBoxes.begin(), waterBoxes.end(), [](const cv::Rect& box) {
             return box.area() > 400 * 400;
@@ -213,20 +215,46 @@ int main(int argc, char* argv[]) {
     std::string outputFileName = "output_bb.txt";
     std::ofstream outputFile(outputFileName);
 
-    if (!outputFile.is_open()) {
+    if(!outputFile.is_open()) {
         std::cerr << "[main] Error: Unable to open file for writing: " << outputFileName << std::endl;
         return -1;
     }
 
-    for (const auto& box : waterBoxes) {
+    for(const auto& box : waterBoxes) {
         outputFile << box.x << " " << box.y << " " 
                    << box.width << " " << box.height << "\n";
     }
 
     outputFile.close();
     std::cout << "[main] WaterBoxes written to file: " << outputFileName << std::endl;
+
+
+    // -------------------------------------------------------------------------------------------
+    // Write output images
+    if(!std::filesystem::exists("OutputImages")) std::filesystem::create_directory("OutputImages");
+
+    // Draw bounding boxes
+    cv::Mat results = test_image.clone();
+    for(const auto& box : waterBoxes)
+        cv::rectangle(results, box, cv::Scalar(0, 255, 0), 2);
+    cv::imwrite("OutputImages/" + std::string(argv[IMG_ARG]) + "_boxes.png", results);
+    
+    // Draw borders
+    results = test_image.clone();
+    for(int i = 0; i < labels2.rows; i++) {
+        for(int j = 0; j < labels2.cols; j++) {
+            if(labels2.at<int>(i, j) == -1) {
+                // Draw border
+                results.at<cv::Vec3b>(i + diff.y, j + diff.x) = cv::Vec3b(0, 255, 0);
+            }
+        }
+    }
+    cv::imwrite("OutputImages/" + std::string(argv[IMG_ARG]) + "_contours.png", results);
  
-    if (!TEST_MODE) {
+    // ---------------------------------- END IMAGE PROCESSING -----------------------------------
+
+
+    if(!TEST_MODE) {
         std::cout << "[main] Calling classifier" << std::endl;
 
         std::string pythonScript = argv[PYTHON_ARG];
@@ -250,6 +278,7 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "[main] Classifier output parsed successfully. Number of entries: " << entries.size() << std::endl;
         // Draw and paint entries rects
+        cv::Mat result = test_image.clone();
         for(const auto& e : entries) {
             cv::Scalar color = e.infected ? cv::Scalar(0, 0, 255) : cv::Scalar(0, 255, 0);
             cv::rectangle(result, e.rect, color, 2);
@@ -261,35 +290,19 @@ int main(int argc, char* argv[]) {
             cv::putText(result, label, cv::Point(e.rect.x, e.rect.y - baseLine), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
         }
         // save image int outputs/[original_image_name]_result.jpg
-        if(!std::filesystem::exists("outputs")) {
-            std::filesystem::create_directory("outputs");
+        if(!std::filesystem::exists("classifier_outputs")) {
+            std::filesystem::create_directory("classifier_outputs");
         }
-        std::string outputImageName = "outputs/" + std::filesystem::path(argv[IMG_ARG]).stem().string() + "_result.jpg";
+        std::string outputImageName = "classifier_outputs/" + std::filesystem::path(argv[IMG_ARG]).stem().string() + "_result.jpg";
         cv::imwrite(outputImageName, result);
         std::cout << "[main] Result image saved to: " << outputImageName << std::endl;
 
         img_show(result, "result with classifier", true);
         
-    }else{
-        // View results
-        cv::Mat markers3;
-        labels2.convertTo(markers3, CV_8U);
-        img_show(markers3, "markers after water2");
-    
-        // Draw and paint borders(-1) **
-        for (int i = 0; i < labels2.rows; i++) {
-            for (int j = 0; j < labels2.cols; j++) {
-                if (labels2.at<int>(i, j) == -1) {
-                    result.at<cv::Vec3b>(i + diff.y, j + diff.x) = cv::Vec3b(255, 0, 0); // border
-                }
-            }
-        }
-        img_show(result, "result");
-
-        // -------------------------------------------------------------------------------------------
+    } else {
         // Upload file and get original dataset bounding boxes
         std::vector<Parser::GT_Entry> entries;
-        Parser::parse_file(Parser::get_file_content(dataset_location + "/GT/" + std::string(argv[1]) + ".txt"), entries);
+        Parser::parse_file(Parser::get_file_content(dataset_location + "/GT/" + std::string(argv[IMG_ARG]) + ".txt"), entries);
         
         if(entries.empty()) {
             std::cerr << "[main] Error: entries is empty\n";
@@ -299,7 +312,7 @@ int main(int argc, char* argv[]) {
         // Populate GT bounding boxes vector
         std::vector<cv::Rect> GT_Bboxes;
         for(const auto &e : entries) GT_Bboxes.push_back(std::move(cv::boundingRect(e.points)));
-        // -------------------------------------------------------------------------------------------
+
 
         // -------------------------------------------------------------------------------------------
         // Compute IoU over acquired data
@@ -316,10 +329,11 @@ int main(int argc, char* argv[]) {
             }
         std::cout << "Matched: " << std::to_string(count / i * 100) << std::endl;
         std::cout << "Global: " << std::to_string(count / out.size() * 100) << std::endl;
-        // -------------------------------------------------------------------------------------------
     }
-            
+    
+
     int key;
     while((key = cv::waitKey(0)) != 27 && key != -1); // 27 is ESC, -1 is window close
+
     return 0;
 }

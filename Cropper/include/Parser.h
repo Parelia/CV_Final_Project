@@ -1,7 +1,7 @@
 /* 
-	###############################
-    #  Author: Gabriele Trevisan  #
-    ###############################
+    #############################
+    #  Author: Parussolo Elia   #
+    #############################
 */
 
 #ifndef Parser_h
@@ -28,13 +28,13 @@ namespace Parser {
     // Handle and extract .txt file content
     std::string get_file_content(const std::filesystem::path&);
     
-    // Parse an entry file of GT_Entry and save them on dst
+    // Parse an entiry file of GT_Entry and save them on target vector
     void parse_file(const std::string&, std::vector<GT_Entry>&);
     
     // Parse a single GT_Entry entry
     int parse_entry(const std::string&, GT_Entry&);
 
-    // View entry content
+    // Compute output string with complete GT_Entry content
     std::string view_GT_Entry(const GT_Entry&);
 };
 

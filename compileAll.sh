@@ -1,3 +1,7 @@
+###############################
+#  Author: Gabriele Trevisan  #
+###############################
+
 cd Classifier/DataSetBuilder
 echo "Cleaning build files..."
 rm -rf build

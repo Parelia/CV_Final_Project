@@ -1,6 +1,6 @@
-	###############################
-    #  Author: Gabriele Trevisan  #
-    ###############################
+###############################
+#  Author: Gabriele Trevisan  #
+###############################
 
 #!/bin/bash
 set -e # Optional: Exit immediately if a command exits with a non-zero status
