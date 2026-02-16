@@ -14,17 +14,11 @@ if [ "$(basename "$(pwd)")" = "build" ]; then
   echo "Now in: $(pwd)" # Should be the parent directory of 'build'
 fi
 
-if [ "$1" = "--no-compile" ]; then
-  echo "Skipping compilation."
-else
-  echo "Compiling..."
-  ./compile.sh
-fi
 
 echo "Changing to build directory..."
 cd build/
 
 echo "Running executable..." # CMake project name (exe)
-./CV_Final_Project_DatasetBuilder Malaria_Dataset Malaria_Dataset_Cropped
+./CV_Final_Project Malaria_Dataset ../Malaria_Dataset_FromGT # ../ to exit build
 
 exit

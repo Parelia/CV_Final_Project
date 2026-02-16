@@ -1,7 +1,7 @@
 /* 
-    #############################
-    #  Author: Parussolo Elia   #
-    #############################
+	###############################
+    #  Author: Gabriele Trevisan  #
+    ###############################
 */
 
 #include <opencv2/imgcodecs.hpp>
@@ -10,19 +10,10 @@
 #include <opencv2/photo.hpp>
 #include <iostream>
 #include "Parser.h"
-#include "Utils.h"
 #include "DatasetBuilder.h"
 
 #define IMG_ARG 1
 
-// Compact the code
-void img_show(cv::Mat img, std::string window_name) {
-    cv::namedWindow(window_name, cv::WINDOW_NORMAL);
-    cv::resizeWindow(window_name, 1200, 700);
-    cv::imshow(window_name, img);
-
-    return;
-}
 
 int main(int argc, char* argv[]) {
     if(argc != 3) {

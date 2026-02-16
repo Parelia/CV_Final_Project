@@ -25,8 +25,8 @@ echo "Changing to build directory..."
 cd build/
 
 
-IMG_DIR="../../Classifier/DatasetBuilder/Malaria_Dataset/Img"
-PY_SCRIPT="../../Classifier/PyClassifier/classifier.py"
+IMG_DIR="../Malaria_Dataset/Img"
+PY_SCRIPT="../PyClassifier/classifier.py"
 
 # Check if the directory exists
 if [ ! -d "$IMG_DIR" ]; then

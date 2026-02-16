@@ -50,5 +50,8 @@ build
 Malaria_Dataset_Cropped
 Malaria_Dataset_Cropped.zip
 Malaria_Dataset_Cropped.tar.gz
+Malaria_Dataset_FromGT
+OutputImages
+
 *.keras
 tuned_models
