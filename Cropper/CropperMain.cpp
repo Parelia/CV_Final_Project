@@ -214,8 +214,10 @@ int main(int argc, char* argv[]) {
         waterBoxes.end()
     );
 
-    // Write waterBoxes into a .txt file *****
-    std::string outputFileName = std::string(argv[IMG_ARG]) + "_parser_bb.txt";
+    // Write waterBoxes into a .txt file 
+    std::filesystem::path filename(argv[IMG_ARG]);
+    if(!std::filesystem::exists("../Malaria_Dataset/BBox")) std::filesystem::create_directories("../Malaria_Dataset/BBox"); // ../ to exit build
+    std::string outputFileName = "../Malaria_Dataset/BBox/" + filename.stem().string()  + "_bb.txt";
     std::ofstream outputFile(outputFileName);
 
     if(!outputFile.is_open()) {
@@ -234,13 +236,13 @@ int main(int argc, char* argv[]) {
     // ---------------------------------- END IMAGE PROCESSING -----------------------------------
 
     // ----------------------------------- SAVE RESULT IMAGES ------------------------------------
-    if(!std::filesystem::exists("OutputImages/Parser")) std::filesystem::create_directories("OutputImages/Parser");
+    if(!std::filesystem::exists("../OutputImages/Cropper")) std::filesystem::create_directories("../OutputImages/Cropper");
 
     // Draw bounding boxes
     cv::Mat results = test_image.clone();
     for(const auto& box : waterBoxes)
         cv::rectangle(results, box, cv::Scalar(0, 255, 0), 2);
-    cv::imwrite("OutputImages/Parser/" + std::string(argv[IMG_ARG]) + "_boxes.jpg", results);
+    cv::imwrite("../OutputImages/Cropper/" + std::string(argv[IMG_ARG]) + "_boxes.jpg", results);
     
     // Draw borders
     results = test_image.clone();
@@ -252,59 +254,59 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-    cv::imwrite("OutputImages/Parser/" + std::string(argv[IMG_ARG]) + "_contours.jpg", results);
+    cv::imwrite("../OutputImages/Cropper/" + std::string(argv[IMG_ARG]) + "_contours.jpg", results);
 
 
     // -------------------------------- START DATA CLASSIFICATION --------------------------------
     if(!TEST_MODE) {
-        std::cout << "[main] Calling classifier" << std::endl;
+    //     std::cout << "[main] Calling classifier" << std::endl;
 
-        std::string pythonScript = argv[PYTHON_ARG];
-        std::string command = "python3 " + pythonScript + " " + std::string(argv[IMG_ARG]) + " " + outputFileName;
+    //     std::string pythonScript = argv[PYTHON_ARG];
+    //     std::string command = "python3 " + pythonScript + " " + std::string(argv[IMG_ARG]) + " " + outputFileName;
 
-        int retCode = std::system(command.c_str());
-        if (retCode != 0) {
-            std::cerr << "[main] Error: Python classifier script execution failed with code " << retCode << std::endl;
-            return -1;
-        }
+    //     int retCode = std::system(command.c_str());
+    //     if (retCode != 0) {
+    //         std::cerr << "[main] Error: Python classifier script execution failed with code " << retCode << std::endl;
+    //         return -1;
+    //     }
 
-        std::cout << "[main] Python classifier script executed successfully. Please see predictions.txt for the raw output" << std::endl;
+    //     std::cout << "[main] Python classifier script executed successfully. Please see predictions.txt for the raw output" << std::endl;
         
-        std::cout << "[main] Parsing classifier output" << std::endl;
+    //     std::cout << "[main] Parsing classifier output" << std::endl;
 
-        // Load classifier output from .txt
-        std::vector<Parser::Classifier_Entry> entries;
-        Parser::parse_file(Parser::get_file_content("predictions.txt"), entries);
-        if(entries.empty()) {
-            std::cerr << "[main] Error: entries is empty\n";
-            return 0;
-        }
-        std::cout << "[main] Classifier output parsed successfully. Number of entries: " << entries.size() << std::endl;
+    //     // Load classifier output from .txt
+    //     std::vector<Parser::Classifier_Entry> entries;
+    //     Parser::parse_file(Parser::get_file_content("predictions.txt"), entries); // TODO:
+    //     if(entries.empty()) {
+    //         std::cerr << "[main] Error: entries is empty\n";
+    //         return 0;
+    //     }
+    //     std::cout << "[main] Classifier output parsed successfully. Number of entries: " << entries.size() << std::endl;
 
-        // Draw and paint entries rects
-        cv::Mat result = test_image.clone();
-        for(const auto& entry : entries) {
-            cv::Scalar color = entry.infected ? cv::Scalar(0, 0, 255) : cv::Scalar(0, 255, 0);
-            cv::rectangle(result, entry.rect, color, 2);
-            // Print confidence on the top of the rectangle
-            std::string label = std::to_string(entry.confidence) + "%";
-            int baseLine;
-            cv::Size labelSize = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
-            cv::rectangle(result, cv::Point(entry.rect.x, entry.rect.y - labelSize.height - baseLine), cv::Point(entry.rect.x + labelSize.width, entry.rect.y), color, cv::FILLED);
-            cv::putText(result, label, cv::Point(entry.rect.x, entry.rect.y - baseLine), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
-        }
+    //     // Draw and paint entries rects
+    //     cv::Mat result = test_image.clone();
+    //     for(const auto& entry : entries) {
+    //         cv::Scalar color = entry.infected ? cv::Scalar(0, 0, 255) : cv::Scalar(0, 255, 0);
+    //         cv::rectangle(result, entry.rect, color, 2);
+    //         // Print confidence on the top of the rectangle
+    //         std::string label = std::to_string(entry.confidence) + "%";
+    //         int baseLine;
+    //         cv::Size labelSize = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
+    //         cv::rectangle(result, cv::Point(entry.rect.x, entry.rect.y - labelSize.height - baseLine), cv::Point(entry.rect.x + labelSize.width, entry.rect.y), color, cv::FILLED);
+    //         cv::putText(result, label, cv::Point(entry.rect.x, entry.rect.y - baseLine), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
+    //     }
 
-        // Save images as [original_image_name]_result.jpg
-        if(!std::filesystem::exists("OutputImages/Classifier/")) {
-            std::filesystem::create_directory("OutputImages/Classifier/");
-        }
-        std::string outputImageName = "OutputImages/Classifier/" + std::filesystem::path(argv[IMG_ARG]).stem().string() + "_result.jpg";
-        cv::imwrite(outputImageName, result);
-        std::cout << "[main] Result image saved to: " << outputImageName << std::endl;
+    //     // Save images as [original_image_name]_result.jpg
+    //     if(!std::filesystem::exists("OutputImages/Classifier/")) {
+    //         std::filesystem::create_directory("OutputImages/Classifier/");
+    //     }
+    //     std::string outputImageName = "OutputImages/Classifier/" + std::filesystem::path(argv[IMG_ARG]).stem().string() + "_result.jpg";
+    //     cv::imwrite(outputImageName, result);
+    //     std::cout << "[main] Result image saved to: " << outputImageName << std::endl;
 
-        img_show(result, "result with classifier", true);
+    //     img_show(result, "result with classifier", true);
 
-        // --------------------------------- END DATA CLASSIFICATION ---------------------------------
+    //     // --------------------------------- END DATA CLASSIFICATION ---------------------------------
     }
     else {
         // --------------------------------- START IoU COMPUTATION -----------------------------------

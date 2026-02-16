@@ -47,9 +47,7 @@
 build
 
 # Program output
-Malaria_Dataset_Cropped
-Malaria_Dataset_Cropped.zip
-Malaria_Dataset_Cropped.tar.gz
+Malaria_Dataset/BBox
 Malaria_Dataset_FromGT
 OutputImages
 

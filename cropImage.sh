@@ -14,11 +14,28 @@ if [ "$(basename "$(pwd)")" = "build" ]; then
   echo "Now in: $(pwd)" # Should be the parent directory of 'build'
 fi
 
-
 echo "Changing to build directory..."
 cd build/
 
-echo "Running executable..." # CMake project name (exe)
-./CV_Final_Project Malaria_Dataset ../Malaria_Dataset_FromGT # ../ to exit build
 
-exit
+IMG_DIR="../Malaria_Dataset/Img"
+PY_SCRIPT="../PyClassifier/classifier.py"
+
+# Check if the directory exists
+if [ ! -d "$IMG_DIR" ]; then
+  echo "Error: Directory $IMG_DIR not found."
+  exit 1
+fi
+
+for img in "$IMG_DIR"/*.jpg; do
+    [ -e "$img" ] || continue
+    
+    echo "------------------------------------------"
+    echo "Processing: $(basename "$img")"
+    
+    ./Cropper "$img" "$PY_SCRIPT" --quiet
+done
+
+echo "------------------------------------------"
+
+exit 0

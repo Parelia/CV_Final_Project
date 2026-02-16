@@ -5,49 +5,47 @@ project(CV_Final_Project)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Include directories
-include_directories(
-  DatasetBuilder/include
-  Cropper/include
-)
-
-# Source files
-set(SOURCES
-    DatasetBuilder/DatasetBuilderMain.cpp
-    DatasetBuilder/src/DatasetBuilder.cpp
-
-    # Cropper/CropperMain.cpp
-    Cropper/src/Parser.cpp
-    # Cropper/src/Utils.cpp
-)
 
 # Find OpenCV
 find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
+
+# Include directories
+include_directories(
+    ${OpenCV_INCLUDE_DIRS}
+    DatasetBuilder/include
+    Cropper/include
+)
+
+add_library(DatasetBuilderLib STATIC
+    DatasetBuilder/src/DatasetBuilder.cpp
+)
+
+add_library(CropperLib STATIC
+    Cropper/src/Parser.cpp
+    Cropper/src/Utils.cpp
+)
+
 
 # Debug
 message(STATUS "OpenCV Include Directory: ${OpenCV_INCLUDE_DIRS}")
 message(STATUS "OpenCV Libraries: ${OpenCV_LIBS}")
 
+
 # Executable
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(DatasetBuilder
+  DatasetBuilder/DatasetBuilderMain.cpp
+)
+target_link_libraries(DatasetBuilder
+    DatasetBuilderLib
+    CropperLib
+    ${OpenCV_LIBS}
+)
 
-# Link OpenCV
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
-
-# add_library(DatasetBuilderLib STATIC
-#     DatasetBuilder/src/DatasetBuilder.cpp
-# )
-# add_library(CropperLib STATIC
-#     Cropper/src/Parser.cpp
-#     Cropper/src/Utils.cpp
-# )
-# add_executable(DatasetBuilder
-#   DatasetBuilder/DatasetBuilderMain.cpp
-# )
-# target_link_libraries(DatasetBuilder CropperLib DatasetBuilderLib)
-
-# add_executable(Cropper
-#   Cropper/CropperMain.cpp
-# )
-# target_link_libraries(Cropper CropperLib)
+# Executable
+add_executable(Cropper
+  Cropper/CropperMain.cpp
+)
+target_link_libraries(Cropper
+    CropperLib
+    ${OpenCV_LIBS}
+)
