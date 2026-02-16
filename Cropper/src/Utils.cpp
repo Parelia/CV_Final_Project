@@ -57,30 +57,23 @@ void Utils::refined_threshold(const cv::Mat& src, cv::Mat& dst) {
 
 
 // Compute IoU values over ground truth
-std::vector<double> Utils::compute_IoU(const std::vector<cv::Rect>& GT_boxes, const std::vector<cv::Rect>& det_boxes) {
-    if (det_boxes.empty()) {
-        std::cerr << "[Utils][compute_IoU] Error: det_boxes is empty\n";
- 
-        }
-    if (GT_boxes.empty()) {
-        std::cerr << "[Utils][compute_IoU] Error: GT_boxes is empty\n";
-
-        }
+std::vector<double> Utils::compute_IoU(const std::vector<cv::Rect>& GT_boxes, const std::vector<cv::Rect>& detected_boxes) {
+    if(detected_boxes.empty()) std::cerr << "[Utils][compute_IoU] Error: detected_boxes is empty\n";
+    if(GT_boxes.empty()) std::cerr << "[Utils][compute_IoU] Error: GT_boxes is empty\n";
    
 
-    // Translate det_boxes into a tl dataset
-    cv::Mat dataset(det_boxes.size(), 2, CV_32F);
-    for (int i = 0; i < det_boxes.size(); i++)  {
-        dataset.at<float>(i, 0) = det_boxes[i].x;
-        dataset.at<float>(i, 1) = det_boxes[i].y;
+    // Translate detected_boxes into a tl dataset
+    cv::Mat dataset(detected_boxes.size(), 2, CV_32F);
+    for (int i = 0; i < detected_boxes.size(); i++)  {
+        dataset.at<float>(i, 0) = detected_boxes[i].x;
+        dataset.at<float>(i, 1) = detected_boxes[i].y;
     }
 
     cv::flann::Index flannIndex;
-
     try {
         flannIndex.build(dataset, cv::flann::KDTreeIndexParams(1), cvflann::FLANN_DIST_EUCLIDEAN);
-     
-    } catch (const cv::Exception& e) {
+    }
+    catch (const cv::Exception& e) {
         std::cerr << "[Utils][compute_IoU] OpenCV FLANN error: " << e.what() << std::endl;
         return {};
     }
@@ -91,7 +84,7 @@ std::vector<double> Utils::compute_IoU(const std::vector<cv::Rect>& GT_boxes, co
     
     std::vector<cv::Rect> matched(GT_boxes.size(), cv::Rect(0,0,0,0));
     
-    // Adgust det_boxes to fit GT_boxes
+    // Adgust detected_boxes to fit GT_boxes
     for(int i=0; i < GT_boxes.size(); i++) {
         // Query
         cv::Mat queryMat(1, 2, CV_32F);
@@ -100,7 +93,7 @@ std::vector<double> Utils::compute_IoU(const std::vector<cv::Rect>& GT_boxes, co
 
         // Output
         flannIndex.knnSearch(queryMat, indices, dists, 1, cv::flann::SearchParams(32));
-        matched[i] = det_boxes[indices[0]];
+        matched[i] = detected_boxes[indices[0]];
     }
 
 
@@ -117,6 +110,6 @@ double Utils::IoU(const cv::Rect& a, const cv::Rect& b) {
     int inter = (a & b).area();
     int uni = a.area() + b.area() - inter;
 
-    if (uni == 0) return 0.0;
+    if(uni == 0) return 0.0;
     return static_cast<double>(inter) / uni;
 }
