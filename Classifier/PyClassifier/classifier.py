@@ -1,35 +1,6 @@
-# import os
-# import sys
-# import keras
-# import numpy as np
-
-# img_height = 256
-# img_width = 256
-# labels_map = {0: 'Parasitized', 1: 'Uninfected'}
-
-# input_image_path = None
-# if len(sys.argv) < 2:
-#     raise ValueError("Please provide the path to the input image as a command-line argument.")
-
-# input_image_path = sys.argv[1]
-# if not os.path.exists('saved_model/malaria_det.keras'):
-#     raise FileNotFoundError("Model file 'saved_model/malaria_det.keras' not found. Please ensure the model has been built and saved correctly.")
-
-
-# model = keras.models.load_model('saved_model/malaria_det.keras')
-
-# img = keras.utils.load_img(input_image_path, target_size=(img_height, img_width))
-# img_array = keras.utils.img_to_array(img)
-# img_array = np.expand_dims(img_array, axis=0)
-# img_array = img_array / 255.0 
-
-# predictions = model.predict(img_array)
-
-# score = predictions[0][0]
-# if score > 0.5:
-#     print(f"{labels_map[1]} (Probabilità: {score:.2%})")
-# else:
-#     print(f"{labels_map[0]} (Probabilità: {1 - score:.2%})")
+###########################
+# Author: Capuzzo Daniele #
+###########################
 
 import os
 import sys
@@ -59,39 +30,39 @@ if not os.path.exists(input_image_path):
 if not os.path.exists(bounding_boxes_path):
     raise FileNotFoundError(f"Bounding boxes file '{bounding_boxes_path}' not found.")
 
-# Load the model
+# load the model
 model = keras.models.load_model(model_path)
 
-# Load the input image
+# load the input image
 input_image = Image.open(input_image_path)
 
-# Read bounding boxes
+# read bounding boxes
 bounding_boxes = []
 with open(bounding_boxes_path, 'r') as f:
     for line in f:
         x, y, width, height = map(int, line.strip().split())
         bounding_boxes.append((x, y, width, height))
 
-# Prepare the output file
+# prepare the output file
 output_file_path = os.path.join(os.path.dirname(bounding_boxes_path), "predictions.txt")
 with open(output_file_path, 'w') as output_file:
     for box in bounding_boxes:
         x, y, width, height = box
 
-        # Crop the image based on the bounding box
+        # crop the image based on the bounding box
         cropped_image = input_image.crop((x, y, x + width, y + height))
 
-        # Resize the cropped image to the model's input size
+        # resize the cropped image to the model's input size
         cropped_image = cropped_image.resize((img_height, img_width))
         img_array = keras.utils.img_to_array(cropped_image)
         img_array = np.expand_dims(img_array, axis=0)
         img_array = img_array / 255.0
 
-        # Make a prediction
+        # predict diagnosis
         predictions = model.predict(img_array)
         score = predictions[0][0]
 
-        # Determine the label
+        # determine the label
         if score > 0.5:
             label = labels_map[1]
             probability = score
@@ -99,7 +70,13 @@ with open(output_file_path, 'w') as output_file:
             label = labels_map[0]
             probability = 1 - score
 
-        # Write the result to the output file
-        output_file.write(f"{label}, {probability:.2%}, {x} {y} {width} {height}\n")
+        # determine diagnosis confidence
+        if 0.4 <= score < 0.6:
+            confidence = "UNCERTAIN"
+        else:
+            confidence = "CONFIDENT"
+
+        # write result: Label, Probability, BBox, Confidence
+        output_file.write(f"{label}, {probability:.2%}, {x} {y} {width} {height}, {confidence}\n")
 
 print(f"Predictions saved to {output_file_path}")
