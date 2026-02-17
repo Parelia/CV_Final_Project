@@ -46,6 +46,9 @@
 # Build
 build
 
+# zip folders
+*.zip
+
 # Program output
 Malaria_Dataset/BBox
 Malaria_Dataset_FromGT
