@@ -49,6 +49,10 @@ build
 # zip folders
 *.zip
 
+# virtual enviroments
+.venv
+venv
+
 # Program output
 Malaria_Dataset/BBox
 Malaria_Dataset_FromGT
