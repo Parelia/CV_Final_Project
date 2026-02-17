@@ -60,3 +60,4 @@ OutputImages
 
 *.keras
 tuned_models
+PyClassifier/__pycache__
