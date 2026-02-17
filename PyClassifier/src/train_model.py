@@ -152,6 +152,10 @@ def main():
         print(f'Best model test accuracy: {accuracy:.4f}')
 
 
+        # make sure the folder exists
+        if not os.path.exists(config.image_directory):
+            print(f"Directory {config.image_directory} not found. Creating it...")
+
         # full classification report with precision, recall, F1-score
         y_true = []
         y_probs = []

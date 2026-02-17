@@ -5,6 +5,9 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import os
+
+import config
 
 from sklearn.metrics import (
     classification_report as sk_report,
@@ -12,6 +15,15 @@ from sklearn.metrics import (
     roc_auc_score,
     roc_curve
 )
+
+def save_plot(filename):
+    """Helper to save the current figure to the config directory."""
+    if not os.path.exists(config.image_directory):
+        os.makedirs(config.image_directory, exist_ok=True)
+    
+    path = os.path.join(config.image_directory, filename)
+    plt.savefig(path, dpi=300, bbox_inches='tight')
+    print(f"\tPlot saved to {path}")
 
 def plot_class_distribution(train_class_counts, val_class_counts):
     # bar diagram of training and validation classes distribution
@@ -75,6 +87,8 @@ def plot_learning_curves(history):
     plt.grid(True)
 
     plt.tight_layout()
+
+    save_plot("class_distribution.png")
     plt.show()
 
 def classification_report(y_true, y_pred):
@@ -91,6 +105,8 @@ def plot_roc(y_true, y_probs):
     plt.title("ROC Curve")
     plt.legend()
     plt.grid(True)
+
+    save_plot("roc.png")
     plt.show()
 
 def plot_cm(y_true, y_pred):
@@ -102,4 +118,5 @@ def plot_cm(y_true, y_pred):
     plt.xlabel('Predicted Label')
     plt.ylabel('True Label')
     plt.title('Confusion Matrix')
+    save_plot("learning_curves.png")
     plt.show()
