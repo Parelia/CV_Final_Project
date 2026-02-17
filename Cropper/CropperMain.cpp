@@ -215,9 +215,10 @@ int main(int argc, char* argv[]) {
     );
 
     // Write waterBoxes into a .txt file 
-    std::filesystem::path filename(argv[IMG_ARG]);
+    std::filesystem::path p(argv[IMG_ARG]);
+    std::string fileName = p.stem().string();
     if(!std::filesystem::exists("../Malaria_Dataset/BBox")) std::filesystem::create_directories("../Malaria_Dataset/BBox"); // ../ to exit build
-    std::string outputFileName = "../Malaria_Dataset/BBox/" + filename.stem().string()  + "_bb.txt";
+    std::string outputFileName = "../Malaria_Dataset/BBox/" + fileName + "_bb.txt";
     std::ofstream outputFile(outputFileName);
 
     if(!outputFile.is_open()) {
@@ -242,7 +243,7 @@ int main(int argc, char* argv[]) {
     cv::Mat results = test_image.clone();
     for(const auto& box : waterBoxes)
         cv::rectangle(results, box, cv::Scalar(0, 255, 0), 2);
-    cv::imwrite("../OutputImages/Cropper/" + std::string(argv[IMG_ARG]) + "_boxes.jpg", results);
+    cv::imwrite("../OutputImages/Cropper/" + fileName + "_boxes.jpg", results);
     
     // Draw borders
     results = test_image.clone();
@@ -254,7 +255,7 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-    cv::imwrite("../OutputImages/Cropper/" + std::string(argv[IMG_ARG]) + "_contours.jpg", results);
+    cv::imwrite("../OutputImages/Cropper/" + fileName + "_contours.jpg", results);
 
 
     // -------------------------------- START DATA CLASSIFICATION --------------------------------
