@@ -2,15 +2,10 @@
 # Author: Capuzzo Daniele #
 ###########################
 
-import tensorflow as tf
-import keras
-from keras import layers
-import keras_tuner as kt
-
 #### CONFIGURATION ####
 # -- dataset directories
-directory = "../Malaria_Dataset_FromGT"
-save_directory = "saved_model/"
+directory = "../../Malaria_Dataset_FromGT"
+save_directory = "../saved_model/"
 val_split = 0.2
 SEED = 123          # for reproducibility
 
@@ -28,7 +23,7 @@ tuner_epochs = 100
 max_epochs = 8
 factor = 3
 early_stop_patience = 3
-tuned_models_dir = 'tuned_models'
+tuned_models_dir = '../tuned_models'
 project_name = 'malaria_det'
 
 # -- model settings

@@ -59,4 +59,4 @@ Malaria_Dataset_FromGT
 OutputImages
 
 tuned_models
-PyClassifier/__pycache__
+*.pyc
