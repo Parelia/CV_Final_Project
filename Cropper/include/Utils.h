@@ -22,6 +22,9 @@ namespace Utils {
 
     // Standard IoU computation
     double IoU(const cv::Rect&, const cv::Rect&);
+
+    // Helper to show images
+    void img_show(cv::Mat, std::string);
 };
 
 #endif

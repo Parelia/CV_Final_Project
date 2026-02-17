@@ -19,7 +19,7 @@ cd build/
 
 
 IMG_DIR="../Malaria_Dataset/Img"
-PY_SCRIPT="../PyClassifier/classifier.py"
+DNN_MODEL="../PyClassifier/saved_model/malaria_det.onnx"
 
 # Check if the directory exists
 if [ ! -d "$IMG_DIR" ]; then
@@ -27,14 +27,7 @@ if [ ! -d "$IMG_DIR" ]; then
   exit 1
 fi
 
-for img in "$IMG_DIR"/*.jpg; do
-    [ -e "$img" ] || continue
-    
-    echo "------------------------------------------"
-    echo "Processing: $(basename "$img")"
-    
-    ./Cropper "$img" "$PY_SCRIPT" --quiet
-done
+./Cropper "$IMG_DIR" "$DNN_MODEL" --quiet
 
 echo "------------------------------------------"
 

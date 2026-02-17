@@ -5,6 +5,8 @@
 */
 
 #include "Utils.h"
+#include <opencv2/highgui.hpp>
+
 
 void Utils::cut_background(const cv::Mat& src, cv::Mat& dst, cv::Point& off) {
     // Mask for non black pixel
@@ -112,4 +114,12 @@ double Utils::IoU(const cv::Rect& a, const cv::Rect& b) {
 
     if(uni == 0) return 0.0;
     return static_cast<double>(inter) / uni;
+}
+
+
+// View image (compact) only for test mode
+void Utils::img_show(cv::Mat img, std::string window_name) {
+    cv::namedWindow(window_name, cv::WINDOW_NORMAL);
+    cv::resizeWindow(window_name, 1200, 700);
+    cv::imshow(window_name, img);
 }

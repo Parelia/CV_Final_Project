@@ -23,6 +23,8 @@ add_library(DatasetBuilderLib STATIC
 add_library(CropperLib STATIC
     Cropper/src/Parser.cpp
     Cropper/src/Utils.cpp
+    Cropper/src/Cropper.cpp
+    Cropper/src/Classifier.cpp
 )
 
 
