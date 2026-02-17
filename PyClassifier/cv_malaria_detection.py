@@ -39,7 +39,7 @@ img_height = 256    # 128
 img_width = 256     # 128
 batch_size = 64     # 32
 SEED = 123          # for reproducibility
-directory = "../DatasetBuilder/build/Malaria_Dataset_Cropped"
+directory = "../Malaria_Dataset_FromGT"
 evaluate = True
 
 
@@ -88,11 +88,11 @@ print(f'[0={classes[0]}, 1={classes[1]}]')
 #### [STATISTICS] compute dataset statistics
 # calculates how many images there are for each class
 def num_img_per_class(dataset):
-  class_counts = collections.Counter()
-  for _, labels in dataset:
-      class_indices = labels.numpy().squeeze().astype(int)  # (batch_size, 1) → (batch_size,)
-      class_counts.update(map(int, class_indices))
-  return class_counts
+    class_counts = collections.Counter()
+    for _, labels in dataset:
+        class_indices = labels.numpy().squeeze().astype(int)  # (batch_size, 1) → (batch_size,)
+        class_counts.update(map(int, class_indices))
+    return class_counts
 
 # getting the counts
 print('COMPUTING DATASETS STATISTICS')
@@ -318,10 +318,13 @@ history = best_model.fit(train_set, epochs=50, callbacks=[stop_early])
 
 
 #### SAVE AND SHOW MODEL ####
-print('SAVING the best model at saved_model/malaria_det.keras')
-keras.saving.save_model(best_model, 'saved_model/malaria_det.keras')
+save_path = os.path.join(config.save_directory, 'malaria_det.keras')
+if not os.path.exists(config.save_directory):
+    print(f"Directory {config.save_directory} not found. Creating it...")
+    os.makedirs(config.save_directory, exist_ok=True)
+print(f'SAVING the best model at {save_path}')
+keras.saving.save_model(best_model, save_path)
 
-print('saved/selected model summary and hyperparams')
 best_model.summary()
 print("Chosen hyperparameters:")
 for hp_name in best_params.values.keys():
@@ -331,14 +334,10 @@ for hp_name in best_params.values.keys():
 #### MODEL EVALUATION ####
 # this operations may take a while, however the code is
 # run iff evaluate=true
-if(evaluate){
+if (evaluate) :
 
     # testing the model
     test_set = test_set.map(lambda x, y: (x/255, y))
-    for image, _ in test_set.take(5):
-    img = image.numpy()
-    print("Image shape:", img.shape)
-    print("Pixel value range: min =", img.min(), ", max =", img.max())
     test_set = test_set.cache().prefetch(buffer_size=tf.data.AUTOTUNE)
     loss, accuracy = best_model.evaluate(test_set, verbose=0)
     print(f'Best model test loss: {loss:.4f}')
@@ -391,5 +390,3 @@ if(evaluate){
     plt.ylabel('True Label')
     plt.title('Confusion Matrix')
     plt.show()
-
-}
