@@ -58,6 +58,5 @@ Malaria_Dataset/BBox
 Malaria_Dataset_FromGT
 OutputImages
 
-*.keras
 tuned_models
 PyClassifier/__pycache__
