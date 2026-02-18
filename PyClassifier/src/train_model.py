@@ -73,12 +73,13 @@ def main():
 
     #### DATASETS #########################
     print('LOADING AND PROCESSING training/test sets')
-    train_set, val_set, test_set = ds.get_datasets()
+    train_set, val_set, test_set, class_names = ds.get_datasets()
 
     print('Computing datasets statistics')
     train_class_counts = ds.num_img_per_class(train_set)
     val_class_counts = ds.num_img_per_class(val_set)
     test_class_counts = ds.num_img_per_class(test_set)
+    print(f'  Class 0: {class_names[0]}, Class 1: {class_names[1]}')
     print('  Training set:', train_class_counts)
     print('  Validation set:', val_class_counts)
     print('  Test set:', test_class_counts)

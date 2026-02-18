@@ -31,6 +31,7 @@ def get_datasets():
         batch_size=config.batch_size,
         label_mode='binary'                 # parasitized/uninfected
     )
+    class_names = train_ds.class_names
 
     # split the other dataset to get validation and test
     val_batches = tf.data.experimental.cardinality(val_test_ds)
@@ -48,7 +49,7 @@ def get_datasets():
     test_ds = test_ds.cache().prefetch(buffer_size=tf.data.AUTOTUNE)
     print("Datasets ready: Train augmented, Val, Test")
 
-    return train_ds, val_ds, test_ds
+    return train_ds, val_ds, test_ds, class_names
 
 def num_img_per_class(dataset):
     class_counts = collections.Counter()
