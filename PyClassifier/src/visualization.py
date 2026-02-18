@@ -17,7 +17,6 @@ from sklearn.metrics import (
 )
 
 def save_plot(filename):
-    """Helper to save the current figure to the config directory."""
     if not os.path.exists(config.image_directory):
         os.makedirs(config.image_directory, exist_ok=True)
     
@@ -55,6 +54,7 @@ def plot_class_distribution(train_class_counts, val_class_counts):
     plt.title("Class Distribution in Training vs Test Set")
     plt.legend()
     plt.tight_layout()
+    save_plot("class_distribution.png")
     plt.show()
 
 def plot_learning_curves(history):
@@ -88,7 +88,7 @@ def plot_learning_curves(history):
 
     plt.tight_layout()
 
-    save_plot("class_distribution.png")
+    save_plot("learning_curves.png")
     plt.show()
 
 def classification_report(y_true, y_pred):
@@ -118,5 +118,5 @@ def plot_cm(y_true, y_pred):
     plt.xlabel('Predicted Label')
     plt.ylabel('True Label')
     plt.title('Confusion Matrix')
-    save_plot("learning_curves.png")
+    save_plot("cm.png")
     plt.show()
