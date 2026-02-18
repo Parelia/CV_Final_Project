@@ -172,15 +172,19 @@ def main():
     keras.saving.save_model(best_model, save_path)
     print(f'trained model saved at {save_path}')
 
+    # TODO: load it from the saved file and move this part to classifier.py
+    # best_model = keras.models.load_model(os.path.join(config.save_directory, 'malaria_det.keras'))
+
     # evaluate only if required
     if (config.evaluate) :
         # testing the model
         # test_set = test_set.map(lambda x, y: (x/255, y)) # NOT NEEDED ANYMORE
 
         test_set = test_set.cache().prefetch(buffer_size=tf.data.AUTOTUNE)
-        loss, auc, accuracy = best_model.evaluate(test_set, verbose='0')
+        loss, accuracy, auc = best_model.evaluate(test_set, verbose='0')
         print(f'Best model test loss: {loss:.4f}')
         print(f'Best model test accuracy: {accuracy:.4f}')
+        print(f'Best model test AUC-ROC: {auc:.4f}')
 
         # make sure the folder exists
         if not os.path.exists(config.image_directory):
