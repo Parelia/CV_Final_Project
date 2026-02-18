@@ -22,7 +22,7 @@ def save_plot(filename):
     
     path = os.path.join(config.image_directory, filename)
     plt.savefig(path, dpi=300, bbox_inches='tight')
-    print(f"\tPlot saved to {path}")
+    print(f"Plot saved to {path}")
 
 def plot_class_distribution(train_class_counts, val_class_counts):
     # bar diagram of training and validation classes distribution
@@ -92,7 +92,7 @@ def plot_learning_curves(history):
     plt.show()
 
 def classification_report(y_true, y_pred):
-    print(sk_report(y_true, y_pred, labels=[0, 1], target_names=['Uninfected', 'Parasitized']))
+    print(sk_report(y_true, y_pred, labels=[0, 1], target_names=['Parasitized', 'Uninfected']))
 
 def plot_roc(y_true, y_probs):
     print(f"AUC-ROC: {roc_auc_score(y_true, y_probs):.4f}")
@@ -110,11 +110,15 @@ def plot_roc(y_true, y_probs):
     plt.show()
 
 def plot_cm(y_true, y_pred):
+    
+    # beware of class ordering: 0 is Parasitized, 1 is Uninfected
+    target_names = ['Parasitized', 'Uninfected'] 
+    
     cm = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(6, 5))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
-                xticklabels=['Uninfected', 'Parasitized'],
-                yticklabels=['Uninfected', 'Parasitized'])
+                xticklabels=target_names,
+                yticklabels=target_names)
     plt.xlabel('Predicted Label')
     plt.ylabel('True Label')
     plt.title('Confusion Matrix')
