@@ -118,63 +118,63 @@ def main():
     # MODEL FACTORY
     builder = model.make_builder(pos, neg)
 
-    # # load a fresh model
-    # best_model = builder(hp)
-    # print('Parameters loaded')
-    # best_model.summary()
+    # load a fresh model
+    best_model = builder(hp)
+    print('Parameters loaded')
+    best_model.summary()
 
-    # # [CALLBACKS] to account for a small validation set!!!
-    # print('Pre-training with early stopping')
-    # stop_early = keras.callbacks.EarlyStopping(
-    #     monitor='val_loss',
-    #     mode='min',
-    #     patience=config.patience_train, 
-    #     restore_best_weights=True
-    # )
+    # [CALLBACKS] to account for a small validation set!!!
+    print('Pre-training with early stopping')
+    stop_early = keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        mode='min',
+        patience=config.patience_train, 
+        restore_best_weights=True
+    )
 
-    # reduce_lr = keras.callbacks.ReduceLROnPlateau(
-    #     monitor='val_loss',
-    #     factor=0.5,
-    #     patience=3,
-    #     min_lr=1e-6,
-    #     verbose=1
-    # )
+    reduce_lr = keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss',
+        factor=0.5,
+        patience=3,
+        min_lr=1e-6,
+        verbose=1
+    )
 
-    # # [PRE-TRAINING]
-    # history = best_model.fit(
-    #     train_set,
-    #     epochs=config.epochs_train,
-    #     validation_data=val_set,
-    #     class_weight=weights,
-    #     callbacks=[stop_early, reduce_lr]
-    # )
-    # vis.plot_learning_curves(history)
+    # [PRE-TRAINING]
+    history = best_model.fit(
+        train_set,
+        epochs=config.epochs_train,
+        validation_data=val_set,
+        class_weight=weights,
+        callbacks=[stop_early, reduce_lr]
+    )
+    vis.plot_learning_curves(history)
 
-    # # [TRAINING]
-    # # first determine the optimal number of epochs
-    # metric_per_epoch = history.history['val_loss']
-    # best_epoch = metric_per_epoch.index(min(metric_per_epoch)) + 1 # due to indexing from 0
-    # print(f"Best epoch found: {best_epoch}")
+    # [TRAINING]
+    # first determine the optimal number of epochs
+    metric_per_epoch = history.history['val_loss']
+    best_epoch = metric_per_epoch.index(min(metric_per_epoch)) + 1 # due to indexing from 0
+    print(f"Best epoch found: {best_epoch}")
 
-    # # create fresh model and retrain it on the full train set
-    # print('RE-Training on the entire training set for ', best_epoch, ' epochs')
-    # best_model = builder(hp)
-    # history = best_model.fit(
-    #     train_set.concatenate(val_set),
-    #     epochs=best_epoch,
-    #     class_weight=weights,
-    #     callbacks=[reduce_lr]
-    # )
+    # create fresh model and retrain it on the full train set
+    print('RE-Training on the entire training set for ', best_epoch, ' epochs')
+    best_model = builder(hp)
+    history = best_model.fit(
+        train_set.concatenate(val_set),
+        epochs=best_epoch,
+        class_weight=weights,
+        callbacks=[reduce_lr]
+    )
 
-    # # save the resulting model
-    # save_path = os.path.join(config.save_directory, 'malaria_det.keras')
-    # if not os.path.exists(config.save_directory):
-    #     print(f"Directory {config.save_directory} not found. Creating it...")
-    #     os.makedirs(config.save_directory, exist_ok=True)
-    # keras.saving.save_model(best_model, save_path)
-    # print(f'trained model saved at {save_path}')
+    # save the resulting model
+    save_path = os.path.join(config.save_directory, 'malaria_det.keras')
+    if not os.path.exists(config.save_directory):
+        print(f"Directory {config.save_directory} not found. Creating it...")
+        os.makedirs(config.save_directory, exist_ok=True)
+    keras.saving.save_model(best_model, save_path)
+    print(f'trained model saved at {save_path}')
 
-    # TODO: load it from the saved file and move this part to classifier.py
+    # loads the model from the saved file (comment out training to avoid retraining if ncessary)
     best_model = keras.models.load_model(os.path.join(config.save_directory, 'malaria_det.keras'))
 
     # evaluate only if required
