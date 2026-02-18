@@ -20,7 +20,6 @@ def augment(image, label):
 
 
 def get_datasets():
-    
     train_ds, val_test_ds = keras.utils.image_dataset_from_directory(
         config.directory,
         validation_split=config.val_split,
