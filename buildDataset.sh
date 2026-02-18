@@ -19,6 +19,6 @@ echo "Changing to build directory..."
 cd build/
 
 echo "Running executable..." # CMake project name (exe)
-./DatasetBuilder Malaria_Dataset ../Malaria_Dataset_FromGT # ../ to exit build
+./DatasetBuilder Malaria_Dataset ../Malaria_Dataset_FromGT/Train ../Malaria_Dataset_FromGT/Test # ../ to exit build
 
 exit

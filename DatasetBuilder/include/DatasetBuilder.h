@@ -22,7 +22,15 @@ enum class Transform {
 };
 
 namespace DatasetBuilder {
-    void build_cropped_dataset(std::string, std::string, std::string, std::string);
+    void build_cropped_dataset(
+        std::string groundThruth,
+        std::string ImagesFolder,
+        std::string parasitizedOutputTrain,
+        std::string uninfectedOutputTrain,
+        std::string parasitizedOutputTest,
+        std::string uninfectedOutputTest,
+        float trainSetPercentage
+    );
 
     void apply_transform(std::string inputImagePath, Transform transformType);
 

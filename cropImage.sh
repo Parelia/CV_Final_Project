@@ -27,6 +27,8 @@ if [ ! -d "$IMG_DIR" ]; then
   exit 1
 fi
 
+# /Cropper "$IMG_DIR" "$DNN_MODEL" --IoU
+
 ./Cropper "$IMG_DIR" "$DNN_MODEL" --quiet
 
 echo "------------------------------------------"

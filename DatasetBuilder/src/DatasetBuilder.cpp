@@ -9,6 +9,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+#include <random>
 
 /**
  * @brief Builds a cropped dataset from the original dataset, given the ground truth and the images folders.
@@ -18,7 +19,20 @@
  * @param parasitizedOutput Path to the folder where the cropped parasitized images will be saved
  * @param uninfectedOutput Path to the folder where the cropped uninfected images will be saved
  */
-void DatasetBuilder::build_cropped_dataset(std::string groundThruth, std::string ImagesFolder, std::string parasitizedOutput, std::string uninfectedOutput) {
+void DatasetBuilder::build_cropped_dataset(
+    std::string groundThruth,
+    std::string ImagesFolder,
+    std::string parasitizedOutputTrain,
+    std::string uninfectedOutputTrain,
+    std::string parasitizedOutputTest,
+    std::string uninfectedOutputTest,
+    float trainSetPercentage
+) {
+
+    std::random_device rd; 
+    std::mt19937 prng(rd());
+    std::bernoulli_distribution distrib(trainSetPercentage);
+
     std::vector<std::filesystem::path> files;
     for(const auto& entry : std::filesystem::directory_iterator(ImagesFolder)) {
         if(entry.path().extension() == ".jpg") {
@@ -40,6 +54,14 @@ void DatasetBuilder::build_cropped_dataset(std::string groundThruth, std::string
             cv::Rect bbox = cv::boundingRect(e.points);
             cv::Mat cropped_image = image(bbox);
             std::string name = file.string() + "_" + std::to_string(e.n_cell) + ".jpg";
+
+            std::string parasitizedOutput = parasitizedOutputTest;
+            std::string uninfectedOutput = uninfectedOutputTest;
+            if (distrib(prng)) { // if true the entry becomes part of the training set
+                parasitizedOutput = parasitizedOutputTrain;
+                uninfectedOutput = uninfectedOutputTrain;
+            }
+
             if(e.infected) {
                 if(!cv::imwrite(parasitizedOutput + "/" + name, cropped_image)) {
                     std::cerr << "[DatasetBuilder] Saving parasitized image error: " << file.string() << std::endl;
@@ -47,8 +69,7 @@ void DatasetBuilder::build_cropped_dataset(std::string groundThruth, std::string
 
                 apply_transform(parasitizedOutput + "/" + name, Transform::FLIPS);
 
-            }
-            else {
+            } else {
                 if(!cv::imwrite(uninfectedOutput + "/" + name, cropped_image)) {
                     std::cerr << "[DatasetBuilder] Saving uninfected image error: " << file.string() << std::endl;
                 }
@@ -57,12 +78,22 @@ void DatasetBuilder::build_cropped_dataset(std::string groundThruth, std::string
     }
 
     // Apply the remaining transforms to all the parasitized images
-    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutput)) {
+    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutputTrain)) {
         if(entry.path().extension() == ".jpg") {
             apply_transform(entry.path().string(), Transform::ROTATIONS_0_90);
         }
     }
-    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutput)) {
+    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutputTrain)) {
+        if(entry.path().extension() == ".jpg") {
+            apply_transform(entry.path().string(), Transform::ELASTIC_DEFORMATIONS);
+        }
+    }
+    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutputTest)) {
+        if(entry.path().extension() == ".jpg") {
+            apply_transform(entry.path().string(), Transform::ROTATIONS_0_90);
+        }
+    }
+    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutputTest)) {
         if(entry.path().extension() == ".jpg") {
             apply_transform(entry.path().string(), Transform::ELASTIC_DEFORMATIONS);
         }
