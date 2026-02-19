@@ -133,7 +133,7 @@ def main():
     vis.plot_learning_curves(history)
 
     # save the resulting model
-    save_path = os.path.join(config.save_directory, 'malaria_det_pretrain.keras')
+    save_path = os.path.join(config.save_directory, 'malaria_det.keras')
     if not os.path.exists(config.save_directory):
         print(f"Directory {config.save_directory} not found. Creating it...")
         os.makedirs(config.save_directory, exist_ok=True)
