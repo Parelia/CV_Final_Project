@@ -76,6 +76,10 @@ def merge_and_balance(train_ds_unbatched, val_ds_unbatched):
     parasitized_ds = merged.filter(lambda x, y: tf.equal(y[0], 0.0)).cache()
     uninfected_ds  = merged.filter(lambda x, y: tf.equal(y[0], 1.0)).cache()
 
+    # getting the counts
+    para_count = parasitized_ds.reduce(0, lambda x, _: x + 1).numpy()
+    uni_count = uninfected_ds.reduce(0, lambda x, _: x + 1).numpy()
+
     parasitized_ds = make_ds(parasitized_ds)
     uninfected_ds  = make_ds(uninfected_ds)
 
@@ -83,7 +87,7 @@ def merge_and_balance(train_ds_unbatched, val_ds_unbatched):
         [parasitized_ds, uninfected_ds], weights=[0.5, 0.5]
     )
 
-    return balanced_ds.batch(config.batch_size).prefetch(tf.data.AUTOTUNE)
+    return balanced_ds.batch(config.batch_size).prefetch(tf.data.AUTOTUNE), para_count, uni_count
 
 def get_test_ds():
     # loads the test dataset from the test subfolder

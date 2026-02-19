@@ -29,5 +29,4 @@ project_name = 'malaria_det'
 
 # -- model settings
 epochs_train = 50
-patience_train = 10
-evaluate = True
+patience_train = 5

@@ -109,7 +109,7 @@ def main():
     
 
     # MODEL FACTORY build model
-    builder = model.make_builder(pos, neg)
+    builder = model.make_builder()
     cnn = builder(hp)
     cnn.summary()
 
@@ -122,7 +122,7 @@ def main():
         restore_best_weights=True
     )
 
-    # [PRE-TRAINING]
+    # [TRAINING]
     history = cnn.fit(
         train_set,
         epochs=config.epochs_train,
@@ -132,41 +132,27 @@ def main():
     )
     vis.plot_learning_curves(history)
 
+    # save the resulting model
+    save_path = os.path.join(config.save_directory, 'malaria_det_pretrain.keras')
+    if not os.path.exists(config.save_directory):
+        print(f"Directory {config.save_directory} not found. Creating it...")
+        os.makedirs(config.save_directory, exist_ok=True)
+    keras.saving.save_model(cnn, save_path)
+    print(f'PRETRAINED model saved at {save_path}')
+
     print('Validation set report before optimal threshold')
     val_probs = cnn.predict(val_set, verbose=0).ravel()
     val_true = np.concatenate([y for x, y in val_set], axis=0)
     print(classification_report(val_true, (val_probs > 0.5).astype(int)))
 
-
     print('Validation set report AFTER optimal threshold')
     optimal_threshold = get_optimal_decision_threshold(val_probs, val_true)
     print(f'OPTIMAL THRESHOLD {optimal_threshold}')
     print(classification_report(val_true, (val_probs >optimal_threshold).astype(int)))
-
-
-    # [TRAINING]
+    
     # first determine the optimal number of epochs
-    metric_per_epoch = history.history['val_loss']
-    best_epoch = metric_per_epoch.index(min(metric_per_epoch)) + 1 # due to indexing from 0
-    print(f"Best epoch found: {best_epoch}")
-
-    # create fresh model and retrain it on the full train set
-    # print('RE-Training on the entire training set for ', best_epoch, ' epochs')
-    # cnn = builder(hp)
-    # history = cnn.fit(
-    #     train_set.concatenate(val_set),
-    #     epochs=best_epoch,
-    #     callbacks=[reduce_lr],
-    #     steps_per_epoch=steps_per_epoch
-    # )
-
-    # save the resulting model
-    save_path = os.path.join(config.save_directory, 'malaria_det.keras')
-    if not os.path.exists(config.save_directory):
-        print(f"Directory {config.save_directory} not found. Creating it...")
-        os.makedirs(config.save_directory, exist_ok=True)
-    keras.saving.save_model(cnn, save_path)
-    print(f'trained model saved at {save_path}')
+    best_epoch = np.argmin(history.history['val_loss']) + 1
+    print(f"Early stopping triggered at: {best_epoch}")
 
 
 if __name__ == "__main__":

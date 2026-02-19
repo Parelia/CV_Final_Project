@@ -16,12 +16,7 @@ import numpy as np
 
 # wraps model builder to easily handle 
 # custom initializations (i.e: bias)
-def make_builder(pos_counts, neg_counts):
-
-    # precompute initial biases to speed up convergence
-    # reduces model predicting all 0 or all 1 initially 
-    # initial_bias = np.log(pos_counts / neg_counts)
-    # output_bias = keras.initializers.Constant(initial_bias)
+def make_builder():
 
     def model_builder(hp):
         model = keras.Sequential([
@@ -35,50 +30,35 @@ def make_builder(pos_counts, neg_counts):
             layers.RandomRotation(hp.Float('rotation', 0.1, 0.3, step=0.1)),
             layers.RandomZoom(hp.Float('zoom', 0.05, 0.2, step=0.05)),
 
-            # THESE BAD GUYS BROKE THE PIPELINE (FULL MODEL COLLAPSE)
-            # this is a reminder to whoever comes after me: save yourselves
-            # 4 hours of bug fixing. If you are better than me, try... be warned however
-            # TOTAL HOURS COUNTER: 4
-            # layers.RandomBrightness(factor=0.15),                    # was max_delta
-            # layers.RandomContrast(factor=0.15),
-
             # block 1
-            layers.Conv2D(hp.Int('f1', 16, 48, step=8), (3,3), padding='same', kernel_initializer='he_normal', use_bias=False),
-            layers.BatchNormalization(),
+            layers.SeparableConv2D(hp.Int('f1', 16, 48, step=8), (3,3), padding='same', use_bias=False),
+            layers.GroupNormalization(groups=8),
             layers.Activation('relu'),
             layers.MaxPooling2D((2,2)),
-            layers.Dropout(hp.Float('drop_1', 0.0, 0.3, step=0.05)),
+            layers.SpatialDropout2D(hp.Float('drop_1', 0.0, 0.3, step=0.05)),
 
             # block 2
-            layers.Conv2D(hp.Int('f2', 32, 80, step=8), (3,3), padding='same', kernel_initializer='he_normal', use_bias=False),
-            layers.BatchNormalization(),
+            layers.SeparableConv2D(hp.Int('f2', 32, 80, step=8), (3,3), padding='same', use_bias=False),
+            layers.GroupNormalization(groups=8),
             layers.Activation('relu'),
             layers.MaxPooling2D((2,2)),
-            layers.Dropout(hp.Float('drop_2', 0.0, 0.3, step=0.05)),
+            layers.SpatialDropout2D(hp.Float('drop_2', 0.0, 0.3, step=0.05)),
 
             # block 3
-            layers.Conv2D(hp.Int('f3', 64, 128, step=16), (3,3), padding='same', kernel_initializer='he_normal', use_bias=False),
-            layers.BatchNormalization(),
+            layers.SeparableConv2D(hp.Int('f3', 64, 128, step=16), (3,3), padding='same', use_bias=False),
+            layers.GroupNormalization(groups=8),
             layers.Activation('relu'),
             layers.MaxPooling2D((2,2)),
-            layers.Dropout(hp.Float('drop_3', 0.1, 0.4, step=0.05)),
-
-            # block 4
-            layers.Conv2D(hp.Int('f4', 64, 128, step=16), (3,3), padding='same', kernel_initializer='he_normal', use_bias=False),
-            layers.BatchNormalization(),
-            layers.Activation('relu'),
-            layers.MaxPooling2D((2,2)),
-            layers.Dropout(hp.Float('drop_4', 0.1, 0.4, step=0.05)),
+            layers.SpatialDropout2D(hp.Float('drop_3', 0.1, 0.4, step=0.05)),
 
             # head
             layers.GlobalAveragePooling2D(),
-            layers.Dense(hp.Int('dense_units', 32, 96, step=16), activation='relu', kernel_initializer='he_normal'),
+            layers.Dense(hp.Int('dense_units', 32, 96, step=16), activation='relu'),
             layers.Dropout(hp.Float('drop_dense', 0.2, 0.5, step=0.05)),
-            layers.Dense(1, activation='sigmoid') # IDE error
+            layers.Dense(1, activation='sigmoid')
         ])
 
         model.compile(
-            # here only IDE errors, according to Keras doc, it's fine
             optimizer=keras.optimizers.Adam(
                 learning_rate=hp.Float('learning_rate', 1e-4, 1e-2, sampling='LOG'),
                 clipnorm=5.0
