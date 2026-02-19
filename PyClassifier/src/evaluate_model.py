@@ -9,10 +9,32 @@ import keras
 import config
 import dataset as ds
 import visualization as vis
+import tensorflow as tf
+
+USE_TTA = True
+N_AUGMENTATIONS = 5
+DEF_THRESHOLD = 0.5
+
+def predict_with_tta(model, dataset, n_augmentations=5, threshold=0.5):
+    all_probs = []
+    
+    for _ in range(n_augmentations):
+        probs = []
+        for images, _ in dataset:
+            # apply random augmentations manually
+            images = tf.image.random_flip_left_right(images)
+            images = tf.image.random_flip_up_down(images)
+            batch_probs = model(images, training=False)
+            probs.append(batch_probs.numpy())
+        all_probs.append(np.concatenate(probs))
+    
+    # average across augmentations
+    avg_probs = np.mean(all_probs, axis=0).ravel()
+    return avg_probs
 
 def main():
     # optional threshold from command line argument
-    threshold = float(sys.argv[1]) if len(sys.argv) > 1 else 0.5
+    threshold = float(sys.argv[1]) if len(sys.argv) > 1 else DEF_THRESHOLD
     print(f'Evaluating model with threshold: {threshold}')
 
     # load model
@@ -23,7 +45,11 @@ def main():
     test_set = ds.get_test_ds()
 
     # predictions
-    y_probs = cnn.predict(test_set).ravel()
+    if (USE_TTA):
+         y_probs = predict_with_tta(cnn, test_set, n_augmentations=5, threshold=threshold)
+    else:
+        y_probs = cnn.predict(test_set).ravel()
+
     y_true  = np.concatenate([y for x, y in test_set], axis=0)
     y_pred  = (y_probs > threshold).astype(int)
 
