@@ -136,10 +136,6 @@ def main():
     print('Parameters loaded')
     best_model.summary()
 
-    random_input = np.random.rand(4, 256, 256, 3).astype(np.float32) * 255
-    out = best_model(random_input, training=False)
-    print("Output on random noise:", out.numpy().flatten())
-
     # [CALLBACKS]
     print('Pre-training with early stopping')
     stop_early = keras.callbacks.EarlyStopping(
@@ -149,7 +145,10 @@ def main():
         restore_best_weights=True
     )
 
-    reduce_lr = keras.callbacks.LearningRateScheduler(cosine_annealing, verbose=1)
+    reduce_lr = keras.callbacks.LearningRateScheduler(
+        cosine_annealing, 
+        verbose=0
+    )
 
     # [PRE-TRAINING]
     history = best_model.fit(
@@ -181,14 +180,14 @@ def main():
     print(f"Best epoch found: {best_epoch}")
 
     # create fresh model and retrain it on the full train set
-    print('RE-Training on the entire training set for ', best_epoch, ' epochs')
-    best_model = builder(hp)
-    history = best_model.fit(
-        train_set.concatenate(val_set),
-        epochs=best_epoch,
-        callbacks=[reduce_lr],
-        steps_per_epoch=steps_per_epoch
-    )
+    # print('RE-Training on the entire training set for ', best_epoch, ' epochs')
+    # best_model = builder(hp)
+    # history = best_model.fit(
+    #     train_set.concatenate(val_set),
+    #     epochs=best_epoch,
+    #     callbacks=[reduce_lr],
+    #     steps_per_epoch=steps_per_epoch
+    # )
 
     # save the resulting model
     save_path = os.path.join(config.save_directory, 'malaria_det.keras')

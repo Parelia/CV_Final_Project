@@ -17,7 +17,7 @@ channels = 3
 
 # -- hyperparameters
 input_shape = (img_height, img_width, channels)
-batch_size = 64
+batch_size = 128
 
 # -- tuner settings
 tuner_epochs = 100
