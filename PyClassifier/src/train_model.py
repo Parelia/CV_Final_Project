@@ -17,6 +17,8 @@ import dataset as ds
 import visualization as vis
 import model
 
+from sklearn.metrics import precision_recall_curve, classification_report
+
 # set logging level
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -69,6 +71,30 @@ def tune_model(train_set, val_set, pos, neg, weights):
     print(f"Successfully saved best hyperparameters to: {save_path}")
 
 
+def get_optimal_decision_threshold(val_probs, val_true):
+
+    # compute the f1-score
+    precision, recall, thresholds = precision_recall_curve(val_true, val_probs)
+    f1_scores = 2 * (precision * recall) / (precision + recall)
+    
+    # find threshold with highest F1 score
+    max_f1_index = np.argmax(f1_scores)
+    optimal_threshold = thresholds[max_f1_index]
+
+    return optimal_threshold
+
+
+def cosine_annealing(epoch, lr):
+    initial_lr = 4e-4
+    min_lr = 1e-6
+    total_epochs = config.epochs_train 
+    
+    # 0.5 * (1 + cos(pi * current_epoch / total_epochs))
+    cos_inner = (np.pi * epoch) / total_epochs
+    new_lr = min_lr + 0.5 * (initial_lr - min_lr) * (1 + np.cos(cos_inner))
+    
+    return new_lr
+
 def main():
 
     #### DATASETS #########################
@@ -97,13 +123,6 @@ def main():
     weights = {0: w0, 1: w1}
     print(f"Computed weights: Class 0: {w0:.2f}, Class 1: {w1:.2f}")
 
-
-    #### MODEL SELECTION ####################
-    # performed only if the user requires it
-    # response = input('[WARNING: SLOW] Perform hyperparameter tuning? [y/n] ')
-    # if (response=='y' or response=='Y'):
-    #     tune_model(train_set, val_set, pos, neg, weights)
-
     
     #### TRAIN THE BEST MODEL ####################
     # [LOADING] the hyperparameters of the best model (avoids re-optimizing)
@@ -123,7 +142,7 @@ def main():
     print('Parameters loaded')
     best_model.summary()
 
-    # [CALLBACKS] to account for a small validation set!!!
+    # [CALLBACKS]
     print('Pre-training with early stopping')
     stop_early = keras.callbacks.EarlyStopping(
         monitor='val_loss',
@@ -132,13 +151,7 @@ def main():
         restore_best_weights=True
     )
 
-    reduce_lr = keras.callbacks.ReduceLROnPlateau(
-        monitor='val_loss',
-        factor=0.5,
-        patience=3,
-        min_lr=1e-6,
-        verbose=1
-    )
+    reduce_lr = keras.callbacks.LearningRateScheduler(cosine_annealing, verbose=1)
 
     # [PRE-TRAINING]
     history = best_model.fit(
@@ -149,6 +162,19 @@ def main():
         callbacks=[stop_early, reduce_lr]
     )
     vis.plot_learning_curves(history)
+
+    
+    print('Validation set report before optimal threshold')
+    val_probs = best_model.predict(val_set, verbose=0).ravel()
+    val_true = np.concatenate([y for x, y in val_set], axis=0)
+    print(classification_report(val_true, (val_probs > 0.5).astype(int)))
+
+
+    print('Validation set report AFTER optimal threshold')
+    optimal_threshold = get_optimal_decision_threshold(val_probs, val_true)
+    print(f'OPTIMAL THRESHOLD {optimal_threshold}')
+    print(classification_report(val_true, (val_probs >optimal_threshold).astype(int)))
+
 
     # [TRAINING]
     # first determine the optimal number of epochs
@@ -179,15 +205,8 @@ def main():
 
     # evaluate only if required
     if (config.evaluate) :
-        # testing the model
-        # test_set = test_set.map(lambda x, y: (x/255, y)) # NOT NEEDED ANYMORE
-
         test_set = test_set.cache().prefetch(buffer_size=tf.data.AUTOTUNE)
-        loss, accuracy, auc = best_model.evaluate(test_set, verbose='0')
-        print(f'Best model test loss: {loss:.4f}')
-        print(f'Best model test accuracy: {accuracy:.4f}')
-        print(f'Best model test AUC-ROC: {auc:.4f}')
-
+        
         # make sure the folder exists
         if not os.path.exists(config.image_directory):
             print(f"Directory {config.image_directory} not found. Creating it...")
@@ -195,7 +214,7 @@ def main():
         # prediction
         y_probs = best_model.predict(test_set).ravel()
         y_true = np.concatenate([y for x, y in test_set], axis=0)
-        y_pred = (y_probs > 0.5).astype(int)
+        y_pred = (y_probs > optimal_threshold).astype(int) #
 
         # full classification report with precision, recall, F1-score
         vis.classification_report(y_true, y_pred)

@@ -3,11 +3,12 @@
     "zoom": 0.1,
     "f1": 32,
     "f2": 64,
-    "f3": 128,
+    "f3": 96,
+    "f4": 128,
     "drop_1": 0.1,
     "drop_2": 0.2,
     "drop_3": 0.3,
     "dense_units": 64,
     "drop_dense": 0.4,
-    "learning_rate": 2e-4
+    "learning_rate": 4e-4
 }

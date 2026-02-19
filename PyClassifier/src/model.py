@@ -53,6 +53,13 @@ def make_builder(pos_counts, neg_counts):
             layers.MaxPooling2D((2,2)),
             layers.Dropout(hp.Float('drop_3', 0.1, 0.4, step=0.05)),
 
+            # block 4
+            layers.Conv2D(hp.Int('f4', 64, 128, step=16), (3,3), padding='same', kernel_initializer='he_normal', use_bias=False),
+            layers.BatchNormalization(),
+            layers.Activation('relu'),
+            layers.MaxPooling2D((2,2)),
+            layers.Dropout(hp.Float('drop_4', 0.1, 0.4, step=0.05)),
+
             # head
             layers.GlobalAveragePooling2D(),
             layers.Dense(hp.Int('dense_units', 32, 96, step=16), activation='relu', kernel_initializer='he_normal'),
@@ -66,7 +73,7 @@ def make_builder(pos_counts, neg_counts):
                 learning_rate=hp.Float('learning_rate', 1e-4, 1e-2, sampling='LOG'),
                 clipnorm=5.0
             ),
-            loss=keras.losses.BinaryCrossentropy(label_smoothing=0.05),
+            loss=keras.losses.BinaryCrossentropy(label_smoothing=0.0),
             metrics=['accuracy', keras.metrics.AUC(name='auc')]
         )
         return model
