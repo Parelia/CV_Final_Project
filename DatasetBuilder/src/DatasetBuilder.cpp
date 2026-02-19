@@ -22,8 +22,11 @@
 void DatasetBuilder::build_cropped_dataset(
     std::string groundThruth,
     std::string ImagesFolder,
+    std::string cropperTestFolder,      // here separately the images for testing
     std::string parasitizedOutputTrain,
     std::string uninfectedOutputTrain,
+    std::string parasitizedOutputVal,
+    std::string uninfectedOutputVal,
     std::string parasitizedOutputTest,
     std::string uninfectedOutputTest,
     float trainSetPercentage
@@ -31,75 +34,104 @@ void DatasetBuilder::build_cropped_dataset(
 
     std::random_device rd; 
     std::mt19937 prng(rd());
-    std::bernoulli_distribution distrib(trainSetPercentage);
+    
+    // process folders for the training and validation
+    process_folder(
+        ImagesFolder, groundThruth,
+        parasitizedOutputTrain, uninfectedOutputTrain,
+        parasitizedOutputVal,   uninfectedOutputVal,
+        prng, trainSetPercentage
+    );
 
-    std::vector<std::filesystem::path> files;
-    for(const auto& entry : std::filesystem::directory_iterator(ImagesFolder)) {
+    // Apply the remaining transforms to all the parasitized images (also val time augmentation)
+    std::cout << "Performing data augmentation on train and validation set, separately!" << std::endl;
+    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutputTrain)) {
         if(entry.path().extension() == ".jpg") {
-            files.push_back(entry.path().stem());
+            apply_transform(entry.path().string(), Transform::ROTATIONS_0_90);
+        }
+    }
+    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutputTrain)) {
+        if(entry.path().extension() == ".jpg") {
+            apply_transform(entry.path().string(), Transform::ELASTIC_DEFORMATIONS);
+        }
+    }
+    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutputVal)) {
+        if(entry.path().extension() == ".jpg") {
+            apply_transform(entry.path().string(), Transform::ROTATIONS_0_90);
+        }
+    }
+    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutputVal)) {
+        if(entry.path().extension() == ".jpg") {
+            apply_transform(entry.path().string(), Transform::ELASTIC_DEFORMATIONS);
         }
     }
 
+    // test set: no split, no augmentation
+    process_folder(
+        cropperTestFolder, groundThruth,
+        parasitizedOutputTest, uninfectedOutputTest,    // A = test
+        "", "",                                         // B = unused
+        prng, 1.0f                                      // always goes to A
+    );
+
+    return;
+}
+
+
+void DatasetBuilder::process_folder(
+    const std::string& imagesFolder,
+    const std::string& groundTruthFolder,
+    const std::string& parasitizedOutputA,  // train or test
+    const std::string& uninfectedOutputA,
+    const std::string& parasitizedOutputB,  // val or empty
+    const std::string& uninfectedOutputB,
+    std::mt19937& prng,
+    float probabilityA                      // probability of going to A
+) {
+    std::bernoulli_distribution distrib(probabilityA);
+
+    std::vector<std::filesystem::path> files;
+    for(const auto& entry : std::filesystem::directory_iterator(imagesFolder))
+        if(entry.path().extension() == ".jpg")
+            files.push_back(entry.path().stem());
+
     for(const auto& file : files) {
-        cv::Mat image = cv::imread(ImagesFolder + "/" + file.string() + ".jpg");
+        cv::Mat image = cv::imread(imagesFolder + "/" + file.string() + ".jpg");
         if(image.empty()) {
             std::cerr << "[DatasetBuilder] Error: image " << file.string() << " is empty" << std::endl;
             continue;
         }
 
+        // GT filename matches image filename
         std::vector<Parser::GT_Entry> entries;
-        Parser::parse_file(Parser::get_file_content(groundThruth + file.string() + ".txt"), entries);
 
-        for(const auto &e : entries) {
+        // strip _test if it's in the name
+        std::string gtStem = file.string();
+        if(gtStem.size() >= 5 && gtStem.substr(gtStem.size() - 5) == "_test")
+            gtStem = gtStem.substr(0, gtStem.size() - 5);
+
+        // get the ground truth (names match)
+        Parser::parse_file(Parser::get_file_content(groundTruthFolder + gtStem + ".txt"), entries);
+
+        for(const auto& e : entries) {
             cv::Rect bbox = cv::boundingRect(e.points);
-            cv::Mat cropped_image = image(bbox);
+            cv::Mat cropped = image(bbox);
             std::string name = file.string() + "_" + std::to_string(e.n_cell) + ".jpg";
 
-            std::string parasitizedOutput = parasitizedOutputTest;
-            std::string uninfectedOutput = uninfectedOutputTest;
-            if (distrib(prng)) { // if true the entry becomes part of the training set
-                parasitizedOutput = parasitizedOutputTrain;
-                uninfectedOutput = uninfectedOutputTrain;
-            }
+            bool goesToA = distrib(prng);
+            std::string parasitizedOut = goesToA ? parasitizedOutputA : parasitizedOutputB;
+            std::string uninfectedOut  = goesToA ? uninfectedOutputA  : uninfectedOutputB;
 
             if(e.infected) {
-                if(!cv::imwrite(parasitizedOutput + "/" + name, cropped_image)) {
-                    std::cerr << "[DatasetBuilder] Saving parasitized image error: " << file.string() << std::endl;
-                }
-
-                apply_transform(parasitizedOutput + "/" + name, Transform::FLIPS);
-
+                if(!cv::imwrite(parasitizedOut + name, cropped))
+                    std::cerr << "[DatasetBuilder] Saving parasitized error: " << name << std::endl;
+                apply_transform(parasitizedOut + name, Transform::FLIPS);
             } else {
-                if(!cv::imwrite(uninfectedOutput + "/" + name, cropped_image)) {
-                    std::cerr << "[DatasetBuilder] Saving uninfected image error: " << file.string() << std::endl;
-                }
+                if(!cv::imwrite(uninfectedOut + name, cropped))
+                    std::cerr << "[DatasetBuilder] Saving uninfected error: " << name << std::endl;
             }
         }
     }
-
-    // Apply the remaining transforms to all the parasitized images
-    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutputTrain)) {
-        if(entry.path().extension() == ".jpg") {
-            apply_transform(entry.path().string(), Transform::ROTATIONS_0_90);
-        }
-    }
-    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutputTrain)) {
-        if(entry.path().extension() == ".jpg") {
-            apply_transform(entry.path().string(), Transform::ELASTIC_DEFORMATIONS);
-        }
-    }
-    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutputTest)) {
-        if(entry.path().extension() == ".jpg") {
-            apply_transform(entry.path().string(), Transform::ROTATIONS_0_90);
-        }
-    }
-    for(const auto& entry : std::filesystem::directory_iterator(parasitizedOutputTest)) {
-        if(entry.path().extension() == ".jpg") {
-            apply_transform(entry.path().string(), Transform::ELASTIC_DEFORMATIONS);
-        }
-    }
-    return;
-
 }
 
 /**
