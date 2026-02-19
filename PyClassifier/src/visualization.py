@@ -41,7 +41,7 @@ def plot_class_distribution(train_class_counts, val_class_counts):
     # Plot bars
     bar_width = 0.35
     bars1 = plt.bar([i - bar_width/2 for i in x_pos], train_vals, width=bar_width, label='Training', color='skyblue')
-    bars2 = plt.bar([i + bar_width/2 for i in x_pos], val_vals, width=bar_width, label='Test', color='orange')
+    bars2 = plt.bar([i + bar_width/2 for i in x_pos], val_vals, width=bar_width, label='Validation', color='orange')
 
     # Add counts on top of bars
     for bar in bars1 + bars2:
@@ -51,7 +51,7 @@ def plot_class_distribution(train_class_counts, val_class_counts):
     # final touches
     plt.xticks(ticks=x_pos, labels=x_labels)
     plt.ylabel("Number of Images")
-    plt.title("Class Distribution in Training vs Test Set")
+    plt.title("Class Distribution in Training vs Validation Set")
     plt.legend()
     plt.tight_layout()
     save_plot("class_distribution.png")
@@ -62,7 +62,7 @@ def plot_learning_curves(history):
     val_acc = history.history['val_accuracy']
     loss = history.history['loss']
     val_loss = history.history['val_loss']
-    epochs_range = range(len(acc))
+    epochs_range = range(1, len(acc) + 1) # should start from 1 (not 0)
 
     plt.figure(figsize=(12, 5))
 

@@ -84,42 +84,21 @@ def get_optimal_decision_threshold(val_probs, val_true):
     return optimal_threshold
 
 
-def cosine_annealing(epoch, lr):
-    initial_lr = 1e-3
-    min_lr = 5e-5
-    total_epochs = config.epochs_train 
-    
-    # 0.5 * (1 + cos(pi * current_epoch / total_epochs))
-    cos_inner = (np.pi * epoch) / total_epochs
-    new_lr = min_lr + 0.5 * (initial_lr - min_lr) * (1 + np.cos(cos_inner))
-    
-    return new_lr
-
 def main():
 
     #### DATASETS #########################
     print('LOADING TRAINING/VAL DATASETS')
-    train_set, val_set, neg, pos = ds.get_train_val_ds()
+    train_ds_unbatched, val_ds_unbatched = ds.get_unbalanced_ds(batch_size=None)
+    train_set, val_set, neg, pos = ds.prepare_and_balance(train_ds_unbatched, val_ds_unbatched)
 
     # determine steps per epoch
     print(f"Training dataset:\n  - Parasitized: {neg}\n  - Uninfected: {pos}")
     majority_count = max(neg, pos)
     steps_per_epoch = (majority_count * 2) // config.batch_size
     print(f"Steps per epoch (after balancing): {steps_per_epoch}")
-
-    # OPTIONAL: plot class distribution
-    # vis.plot_class_distribution(train_class_counts, val_class_counts)
-
-    # [HANDLING IMBALANCE] through class weights
-    # total = pos + neg
-    # w0 = (1 / neg) * (total / 2.0)
-    # w1 = (1 / pos) * (total / 2.0)
-    # weights = {0: w0, 1: w1}
-    # print(f"Computed weights: Class 0: {w0:.2f}, Class 1: {w1:.2f}")
-
     
     #### TRAIN THE BEST MODEL ####################
-    # [LOADING] the hyperparameters of the best model (avoids re-optimizing)
+    # [LOADING] the hyperparameters from json file
     print('Training the model with the best_config.json hparams')
     save_path = os.path.join(config.save_directory, 'best_config.json')
     with open(save_path, 'r') as f:
@@ -128,13 +107,11 @@ def main():
     for key, value in loaded_hp_dict.items():
         hp.Fixed(key, value) # treat it as if it was an optimizer choice
     
-    # MODEL FACTORY
-    builder = model.make_builder(pos, neg)
 
-    # load a fresh model
-    best_model = builder(hp)
-    print('Parameters loaded')
-    best_model.summary()
+    # MODEL FACTORY build model
+    builder = model.make_builder(pos, neg)
+    cnn = builder(hp)
+    cnn.summary()
 
     # [CALLBACKS]
     print('Pre-training with early stopping')
@@ -145,24 +122,18 @@ def main():
         restore_best_weights=True
     )
 
-    reduce_lr = keras.callbacks.LearningRateScheduler(
-        cosine_annealing, 
-        verbose=0
-    )
-
     # [PRE-TRAINING]
-    history = best_model.fit(
+    history = cnn.fit(
         train_set,
         epochs=config.epochs_train,
         validation_data=val_set,
-        callbacks=[stop_early, reduce_lr],
+        callbacks=[stop_early],
         steps_per_epoch=steps_per_epoch
     )
     vis.plot_learning_curves(history)
 
-    
     print('Validation set report before optimal threshold')
-    val_probs = best_model.predict(val_set, verbose=0).ravel()
+    val_probs = cnn.predict(val_set, verbose=0).ravel()
     val_true = np.concatenate([y for x, y in val_set], axis=0)
     print(classification_report(val_true, (val_probs > 0.5).astype(int)))
 
@@ -181,8 +152,8 @@ def main():
 
     # create fresh model and retrain it on the full train set
     # print('RE-Training on the entire training set for ', best_epoch, ' epochs')
-    # best_model = builder(hp)
-    # history = best_model.fit(
+    # cnn = builder(hp)
+    # history = cnn.fit(
     #     train_set.concatenate(val_set),
     #     epochs=best_epoch,
     #     callbacks=[reduce_lr],
@@ -194,33 +165,8 @@ def main():
     if not os.path.exists(config.save_directory):
         print(f"Directory {config.save_directory} not found. Creating it...")
         os.makedirs(config.save_directory, exist_ok=True)
-    keras.saving.save_model(best_model, save_path)
+    keras.saving.save_model(cnn, save_path)
     print(f'trained model saved at {save_path}')
-
-    # loads the model from the saved file (comment out training to avoid retraining if ncessary)
-    best_model = keras.models.load_model(os.path.join(config.save_directory, 'malaria_det.keras'))
-
-    # evaluate only if required
-    if (config.evaluate) :
-        test_set = ds.get_test_ds()
-        
-        # make sure the folder exists
-        if not os.path.exists(config.image_directory):
-            print(f"Directory {config.image_directory} not found. Creating it...")
-
-        # prediction
-        y_probs = best_model.predict(test_set).ravel()
-        y_true = np.concatenate([y for x, y in test_set], axis=0)
-        y_pred = (y_probs > optimal_threshold).astype(int) #
-
-        # full classification report with precision, recall, F1-score
-        vis.classification_report(y_true, y_pred)
-
-        # ROC curve and AUC-ROC parameter
-        vis.plot_roc(y_true, y_probs)
-        
-        # confusion matrix
-        vis.plot_cm(y_true, y_pred)
 
 
 if __name__ == "__main__":

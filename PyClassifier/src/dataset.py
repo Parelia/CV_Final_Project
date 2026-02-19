@@ -8,38 +8,46 @@ import keras
 import config
 import os
 
-def augment(image, label):
-    # different by those done by the model
-    image = tf.image.random_brightness(image, max_delta=0.15)
-    image = tf.image.random_contrast(image, lower=0.85, upper=1.15)
-    image = tf.image.random_saturation(image, lower=0.85, upper=1.15)
-    image = tf.image.random_hue(image, max_delta=0.05)
-    return image, label
+# def augment(image, label):
+#     # different by those done by the model
+#     image = tf.image.random_brightness(image, max_delta=0.15)
+#     image = tf.image.random_contrast(image, lower=0.85, upper=1.15)
+#     image = tf.image.random_saturation(image, lower=0.85, upper=1.15)
+#     image = tf.image.random_hue(image, max_delta=0.05)
+#     return image, label
 
 def make_ds(dataset):
     return dataset.shuffle(buffer_size=1000).repeat()
 
-def get_train_val_ds():
-    # load the training and validation datasets from their subfolders
-    # datasets are UNBATCHED so they can be rebalanced easily
-    train_ds_unbatched, val_ds_unbatched = keras.utils.image_dataset_from_directory(
+def get_unbalanced_ds(batch_size=None):
+    train_ds = keras.utils.image_dataset_from_directory(
         os.path.join(config.directory, "Train"),
-        validation_split=config.val_split,
-        shuffle=True,                       # ensure classes are mixed
+        shuffle=True,
         seed=config.SEED,
-        subset="both",
         image_size=(config.img_height, config.img_width),
-        batch_size=None,                    # no batch size for unbatched datasets
-        label_mode='binary'                 # parasitized/uninfected
+        batch_size=batch_size,
+        label_mode='binary'
     )
 
-    print(
-        f'Dataset information:\n  - Classes: {train_ds_unbatched.class_names}\n  - Training samples: {len(train_ds_unbatched)}\n  - Validation samples: {len(val_ds_unbatched)}'
+    val_ds = keras.utils.image_dataset_from_directory(
+        os.path.join(config.directory, "Validation"),
+        shuffle=True,
+        seed=config.SEED,
+        image_size=(config.img_height, config.img_width),
+        batch_size=batch_size,
+        label_mode='binary'
     )
+    print(
+        f'Dataset information:\n  - Classes: {train_ds.class_names}\n  - Training samples: {len(train_ds)}\n  - Validation samples: {len(val_ds)}'
+    )
+
+    return train_ds, val_ds
+
+def prepare_and_balance(train_ds_unbatched, val_ds_unbatched):
     
     # get the parasitized and uninfected cells and cache them
-    parasitized_ds = train_ds_unbatched.filter(lambda x, y: y[0] == 0).cache()
-    uninfected_ds = train_ds_unbatched.filter(lambda x, y: y[0] == 1).cache()
+    parasitized_ds = train_ds_unbatched.filter(lambda x, y: tf.equal(y[0], 0.0)).cache()
+    uninfected_ds  = train_ds_unbatched.filter(lambda x, y: tf.equal(y[0], 1.0)).cache()
     
     # getting the counts
     para_count = parasitized_ds.reduce(0, lambda x, _: x + 1).numpy()
@@ -60,6 +68,22 @@ def get_train_val_ds():
     val_ds = val_ds_unbatched.batch(config.batch_size).cache().prefetch(tf.data.AUTOTUNE)
 
     return train_ds, val_ds, para_count, uni_count
+
+
+def merge_and_balance(train_ds_unbatched, val_ds_unbatched):
+    merged = train_ds_unbatched.concatenate(val_ds_unbatched)
+
+    parasitized_ds = merged.filter(lambda x, y: tf.equal(y[0], 0.0)).cache()
+    uninfected_ds  = merged.filter(lambda x, y: tf.equal(y[0], 1.0)).cache()
+
+    parasitized_ds = make_ds(parasitized_ds)
+    uninfected_ds  = make_ds(uninfected_ds)
+
+    balanced_ds = tf.data.Dataset.sample_from_datasets(
+        [parasitized_ds, uninfected_ds], weights=[0.5, 0.5]
+    )
+
+    return balanced_ds.batch(config.batch_size).prefetch(tf.data.AUTOTUNE)
 
 def get_test_ds():
     # loads the test dataset from the test subfolder
