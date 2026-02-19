@@ -60,3 +60,6 @@ OutputImages
 
 tuned_models
 *.pyc
+
+# just for conversion to onnx
+PyClassifier/saved_model/malaria_saved_model
