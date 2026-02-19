@@ -40,6 +40,7 @@ def main():
     # load model
     model_name = sys.argv[2]  if len(sys.argv) > 2 else 'malaria_det.keras'
     cnn = keras.models.load_model(os.path.join(config.save_directory, model_name))
+    cnn.summary()
 
     # load test set
     test_set = ds.get_test_ds()

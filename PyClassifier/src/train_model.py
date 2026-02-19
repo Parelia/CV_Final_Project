@@ -27,13 +27,13 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
 
-def tune_model(train_set, val_set, pos, neg, weights):
-    builder = model.make_builder(pos, neg)
+def tune_model(train_set, val_set, steps_per_epoch):
+    builder = model.make_builder()
 
     # [SETUP] keras tuner
     tuner = kt.Hyperband(
         hypermodel=builder,
-        objective='val_accuracy',
+        objective='val_loss',
         max_epochs=config.max_epochs,
         factor = config.factor,
         directory = config.tuned_models_dir,
@@ -52,8 +52,8 @@ def tune_model(train_set, val_set, pos, neg, weights):
         train_set,
         epochs=config.tuner_epochs,
         validation_data=val_set,
-        class_weight=weights,
-        callbacks=[stop_early]
+        callbacks=[stop_early],
+        steps_per_epoch=steps_per_epoch
     )
 
     # [SAVING] the obtained hyperparameters
