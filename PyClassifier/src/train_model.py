@@ -98,30 +98,24 @@ def cosine_annealing(epoch, lr):
 def main():
 
     #### DATASETS #########################
-    print('LOADING AND PROCESSING training/test sets')
-    train_set, val_set, test_set, class_names = ds.get_datasets()
+    print('LOADING TRAINING/VAL DATASETS')
+    train_set, val_set, neg, pos = ds.get_train_val_ds()
 
-    print('Computing datasets statistics')
-    train_class_counts = ds.num_img_per_class(train_set)
-    val_class_counts = ds.num_img_per_class(val_set)
-    test_class_counts = ds.num_img_per_class(test_set)
-    mapping = {i: name for i, name in enumerate(class_names)}
-    print(f"  Classes: {(mapping)}")
-    print('  Training set:', train_class_counts)
-    print('  Validation set:', val_class_counts)
-    print('  Test set:', test_class_counts)
+    # determine steps per epoch
+    print(f"Training dataset:\n  - Parasitized: {neg}\n  - Uninfected: {pos}")
+    majority_count = max(neg, pos)
+    steps_per_epoch = (majority_count * 2) // config.batch_size
+    print(f"Steps per epoch (after balancing): {steps_per_epoch}")
 
     # OPTIONAL: plot class distribution
-    vis.plot_class_distribution(train_class_counts, val_class_counts)
+    # vis.plot_class_distribution(train_class_counts, val_class_counts)
 
     # [HANDLING IMBALANCE] through class weights
-    neg = train_class_counts[0]  # 0
-    pos = train_class_counts[1]  # 1
-    total = pos + neg
-    w0 = (1 / neg) * (total / 2.0)
-    w1 = (1 / pos) * (total / 2.0)
-    weights = {0: w0, 1: w1}
-    print(f"Computed weights: Class 0: {w0:.2f}, Class 1: {w1:.2f}")
+    # total = pos + neg
+    # w0 = (1 / neg) * (total / 2.0)
+    # w1 = (1 / pos) * (total / 2.0)
+    # weights = {0: w0, 1: w1}
+    # print(f"Computed weights: Class 0: {w0:.2f}, Class 1: {w1:.2f}")
 
     
     #### TRAIN THE BEST MODEL ####################
@@ -158,8 +152,8 @@ def main():
         train_set,
         epochs=config.epochs_train,
         validation_data=val_set,
-        class_weight=weights,
-        callbacks=[stop_early, reduce_lr]
+        callbacks=[stop_early, reduce_lr],
+        steps_per_epoch=steps_per_epoch
     )
     vis.plot_learning_curves(history)
 
@@ -188,8 +182,8 @@ def main():
     history = best_model.fit(
         train_set.concatenate(val_set),
         epochs=best_epoch,
-        class_weight=weights,
-        callbacks=[reduce_lr]
+        callbacks=[reduce_lr],
+        steps_per_epoch=steps_per_epoch
     )
 
     # save the resulting model
@@ -205,7 +199,7 @@ def main():
 
     # evaluate only if required
     if (config.evaluate) :
-        test_set = test_set.cache().prefetch(buffer_size=tf.data.AUTOTUNE)
+        test_set = ds.get_test_ds()
         
         # make sure the folder exists
         if not os.path.exists(config.image_directory):
