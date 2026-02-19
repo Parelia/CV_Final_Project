@@ -85,8 +85,8 @@ def get_optimal_decision_threshold(val_probs, val_true):
 
 
 def cosine_annealing(epoch, lr):
-    initial_lr = 4e-4
-    min_lr = 1e-6
+    initial_lr = 1e-3
+    min_lr = 5e-5
     total_epochs = config.epochs_train 
     
     # 0.5 * (1 + cos(pi * current_epoch / total_epochs))
@@ -135,6 +135,10 @@ def main():
     best_model = builder(hp)
     print('Parameters loaded')
     best_model.summary()
+
+    random_input = np.random.rand(4, 256, 256, 3).astype(np.float32) * 255
+    out = best_model(random_input, training=False)
+    print("Output on random noise:", out.numpy().flatten())
 
     # [CALLBACKS]
     print('Pre-training with early stopping')

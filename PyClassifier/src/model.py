@@ -20,8 +20,8 @@ def make_builder(pos_counts, neg_counts):
 
     # precompute initial biases to speed up convergence
     # reduces model predicting all 0 or all 1 initially 
-    initial_bias = np.log(pos_counts / neg_counts)
-    output_bias = keras.initializers.Constant(initial_bias)
+    # initial_bias = np.log(pos_counts / neg_counts)
+    # output_bias = keras.initializers.Constant(initial_bias)
 
     def model_builder(hp):
         model = keras.Sequential([
@@ -32,11 +32,15 @@ def make_builder(pos_counts, neg_counts):
 
             # augmentation
             layers.RandomFlip("horizontal_and_vertical"),
-            layers.RandomFlip("horizontal_and_vertical"),
             layers.RandomRotation(hp.Float('rotation', 0.1, 0.3, step=0.1)),
             layers.RandomZoom(hp.Float('zoom', 0.05, 0.2, step=0.05)),
-            layers.RandomBrightness(factor=0.15),                    # was max_delta
-            layers.RandomContrast(factor=0.15),
+
+            # THESE BAD GUYS BROKE THE PIPELINE (FULL MODEL COLLAPSE)
+            # this is a reminder to whoever comes after me: save yourselves
+            # 4 hours of bug fixing. If you are better than me, try... be warned however
+            # TOTAL HOURS COUNTER: 4
+            # layers.RandomBrightness(factor=0.15),                    # was max_delta
+            # layers.RandomContrast(factor=0.15),
 
             # block 1
             layers.Conv2D(hp.Int('f1', 16, 48, step=8), (3,3), padding='same', kernel_initializer='he_normal', use_bias=False),
@@ -70,7 +74,7 @@ def make_builder(pos_counts, neg_counts):
             layers.GlobalAveragePooling2D(),
             layers.Dense(hp.Int('dense_units', 32, 96, step=16), activation='relu', kernel_initializer='he_normal'),
             layers.Dropout(hp.Float('drop_dense', 0.2, 0.5, step=0.05)),
-            layers.Dense(1, activation='sigmoid', bias_initializer=output_bias) # IDE error
+            layers.Dense(1, activation='sigmoid') # IDE error
         ])
 
         model.compile(

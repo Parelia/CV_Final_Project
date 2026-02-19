@@ -10,5 +10,5 @@
     "drop_3": 0.3,
     "dense_units": 64,
     "drop_dense": 0.4,
-    "learning_rate": 4e-4
+    "learning_rate": 1e-3
 }
