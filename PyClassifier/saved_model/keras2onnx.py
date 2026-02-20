@@ -1,38 +1,29 @@
-#############################
-# Author: Gabriele Trevisan #
-#############################
-
-import subprocess
-import sys
 import tensorflow as tf
+import keras
+import onnx 
+from onnx import TensorProto  
 
-# Load model
-model = tf.keras.models.load_model("malaria_det.keras")
+model = keras.models.load_model("malaria_det.keras")
 
-# Strip augmentation layers (only needed for training, not inference)
-inference_model = tf.keras.Sequential([
-    layer for layer in model.layers
-    if not any(x in layer.name for x in ["random_flip", "random_rotation", "random_zoom"])
-])
-inference_model.build(model.input_shape)
-inference_model.set_weights(model.get_weights())
+inference_model = keras.Sequential()
 
-# Export clean model as SavedModel
-inference_model.export("malaria_saved_model_clean")
+for layer in model.layers:
+    if not any(aug in layer.name.lower() for aug in ['random_flip', 'random_rotation', 'random_zoom']):
+        inference_model.add(layer)
 
-# Convert from SavedModel to ONNX
-subprocess.run([
-    sys.executable, "-m", "tf2onnx.convert",
-    "--saved-model", "malaria_saved_model_clean",
-    "--output", "malaria_det.onnx",
-    "--opset", "17"
-], check=True)
+dummy_input = tf.zeros((1, 256, 256, 3)) 
+_ = inference_model(dummy_input)
+
+inference_model.export("malaria_det_v2.onnx", format="onnx")
+
+model = onnx.load("malaria_det_v2.onnx")  
+for tensor in model.graph.initializer:     
+    if tensor.data_type == TensorProto.UINT64:         
+        tensor.data_type = TensorProto.INT32     
+    elif tensor.data_type == TensorProto.INT64:         
+        tensor.data_type = TensorProto.INT32  
+            
+onnx.save(model, "malaria_det_v2-32.onnx")
 
 
-# subprocess.run([
-#     sys.executable, "-m", "onnxsim",
-#     "malaria_det.onnx",
-#     "malaria_det_simplified.onnx"
-# ], check=True)
-
-print("Done! Use malaria_det_simplified.onnx in OpenCV C++")
+print("Clean inference model exported successfully!")
