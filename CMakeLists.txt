@@ -1,3 +1,6 @@
+##########################
+# Author: Parussolo Elia #
+##########################
 cmake_minimum_required(VERSION 3.10)
 project(CV_Final_Project)
 

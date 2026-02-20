@@ -3,7 +3,7 @@
 ###############################
 
 #!/bin/bash
-set -e # Optional: Exit immediately if a command exits with a non-zero status
+set -e # Exit immediately if a command exits with a non-zero status
 
 echo "Starting in: $(pwd)"
 
@@ -18,7 +18,7 @@ fi
 echo "Changing to build directory..."
 cd build/
 
-echo "Running executable..." # CMake project name (exe)
+echo "Running executable..."
 ./DatasetBuilder Malaria_Dataset ../Malaria_Dataset_FromGT/Train ../Malaria_Dataset_FromGT/Validation ../Malaria_Dataset_FromGT/Test # ../ to exit build
 
 exit

@@ -3,7 +3,7 @@
 ###############################
 
 #!/bin/bash
-set -e # Optional: Exit immediately if a command exits with a non-zero status
+set -e # Exit immediately if a command exits with a non-zero status
 
 echo "Starting in: $(pwd)"
 
@@ -38,7 +38,7 @@ fi
 ./Cropper "$TEST_DIR" --IoU
 
 
-TEST_IMG_DIR="../Malaria_Dataset/CropperTest"
+TEST_IMG_DIR="../Malaria_Dataset/CropperTest/Img"
 DNN_MODEL="../PyClassifier/saved_model/malaria_det_v2.onnx"
 
 # Check if the directory exists

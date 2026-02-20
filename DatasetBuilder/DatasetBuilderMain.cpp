@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
         DatasetBuilder::build_cropped_dataset(
             "../" + DATASET_PATH + "/GT/",          // common ground truths
             "../" + DATASET_PATH + "/Img/",         // training/validation
-            "../" + DATASET_PATH + "/CropperTest/", // inference/test set 
+            "../" + DATASET_PATH + "/CropperTest/Img", // inference/test set 
             DATASET_CROPPED_TRAIN_PATH + PARASITIZED_FOLDER + "/",
             DATASET_CROPPED_TRAIN_PATH + UNINFECTED_FOLDER + "/",
             DATASET_CROPPED_VAL_PATH + PARASITIZED_FOLDER + "/",

@@ -11,7 +11,7 @@
 std::string Parser::get_file_content(const std::filesystem::path& file_path) {
 	// Preliminary check on existence and type
     if(!std::filesystem::exists(file_path)) {
-        std::cerr << "[Parser] Error: invalid file path\n";
+        std::cerr << "[Parser] Error: invalid file path \"" << file_path << "\"" << std::endl;
         return "";
     }
     if(file_path.extension() != ".txt") {

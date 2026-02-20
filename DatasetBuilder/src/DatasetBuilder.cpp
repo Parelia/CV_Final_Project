@@ -68,7 +68,7 @@ void DatasetBuilder::build_cropped_dataset(
 
     // test set: no split
     process_folder(
-        cropperTestFolder, groundThruth,
+        cropperTestFolder, groundThruth + "../CropperTest/GT/",
         parasitizedOutputTest, uninfectedOutputTest,    // A = test
         "", "",                                         // B = unused
         prng, 1.0f                                      // always goes to A
@@ -88,6 +88,7 @@ void DatasetBuilder::process_folder(
     std::mt19937& prng,
     float probabilityA                      // probability of going to A
 ) {
+    std::cout << "Processing folder: " << imagesFolder << ", using gt from: " << groundTruthFolder << std::endl;
     std::bernoulli_distribution distrib(probabilityA);
 
     std::vector<std::filesystem::path> files;
@@ -105,13 +106,8 @@ void DatasetBuilder::process_folder(
         // GT filename matches image filename
         std::vector<Parser::GT_Entry> entries;
 
-        // strip _test if it's in the name
-        std::string gtStem = file.string();
-        if(gtStem.size() >= 5 && gtStem.substr(gtStem.size() - 5) == "_test")
-            gtStem = gtStem.substr(0, gtStem.size() - 5);
-
         // get the ground truth (names match)
-        Parser::parse_file(Parser::get_file_content(groundTruthFolder + gtStem + ".txt"), entries);
+        Parser::parse_file(Parser::get_file_content(groundTruthFolder + file.string() + ".txt"), entries);
 
         for(const auto& e : entries) {
             cv::Rect bbox = cv::boundingRect(e.points);

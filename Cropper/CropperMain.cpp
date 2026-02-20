@@ -1,7 +1,7 @@
 /* 
-    #############################
-    #  Author: Parussolo Elia   #
-    #############################
+    ###############################
+    #  Author: Trevisan Gabriele  #
+    ###############################
 */
 
 #include <opencv2/imgcodecs.hpp>
@@ -21,9 +21,9 @@
 #define MODEL_ARG 2
 
 
-const std::string OUTPUT_IMAGES_DIR = "../OutputImages/Cropper";
+const std::string OUTPUT_IMAGES_DIR = "../OutputImages/Cropper/";
 const std::string OUTPUT_CLASSIFIER_DIR = "../OutputImages/Classifier/";
-const std::string DATASET_BBOX_DIR = "../Malaria_Dataset/BBox";
+const std::string DATASET_BBOX_DIR = "../OutputImages/BBox/";
 
 int main(int argc, char* argv[]) {
     
@@ -62,15 +62,13 @@ int main(int argc, char* argv[]) {
     else {
         std::cout << "[Cropper] Usage:" << std::endl;
         std::cout << "\t " + std::string(argv[0]) + " <dataset dir> --IoU: Generate and show IoU report" << std::endl;
-        std::cout << "\t " + std::string(argv[0]) + " <images dir> <Onnx model>: Generate and show IoU report" << std::endl;
+        std::cout << "\t " + std::string(argv[0]) + " <images dir> <Onnx model>: Perform inference on the images in the directory" << std::endl;
         std::cout << std::endl;
     }
 
     if(!std::filesystem::exists(dataset_img_location)) {
-        // print pwd
         std::cerr << "[Cropper] Current working directory: " << std::filesystem::current_path() << std::endl;
         std::cerr << "[Cropper] Error: input path does not exist\n";
-        // print FULL path
         std::cerr << "[Cropper] Error: input path: " << std::filesystem::absolute(dataset_img_location) << std::endl;
         return -1;
     }
@@ -84,6 +82,7 @@ int main(int argc, char* argv[]) {
             return -1;
         }
     }
+    std::cout << dataset_img_location << std::endl;
     // loop through all .jpg files in the input path dataset_img_location
     for(const auto& entry : std::filesystem::directory_iterator(dataset_img_location)) {
         if(entry.path().extension() == ".jpg") {
@@ -102,26 +101,19 @@ int main(int argc, char* argv[]) {
             cv::Mat test_image = cv::imread(img_path.string());
             cv::Mat results = test_image.clone();
             for(const auto& box : waterBoxes)
-                cv::rectangle(results, box, cv::Scalar(0, 255, 0), 2);
+                cv::rectangle(results, box, cv::Scalar(255, 0, 0), 2);
             cv::imwrite(OUTPUT_IMAGES_DIR + fileName + "_boxes.jpg", results);
             
-            // Draw borders
-            results = test_image.clone();
-            for(const auto& box : waterBoxes){
-                cv::rectangle(results, box, cv::Scalar(255, 0, 0), 2);
+            if(!std::filesystem::exists(DATASET_BBOX_DIR)) std::filesystem::create_directories(DATASET_BBOX_DIR);
+            std::string outputFileName = DATASET_BBOX_DIR + fileName + "_bb.txt";
+            std::ofstream outputFile(outputFileName);
+            if(!outputFile.is_open()) {
+                std::cerr << "[Cropper] Error: Unable to open file for writing: " << outputFileName << std::endl;
+                return {};
             }
-            cv::imwrite(OUTPUT_IMAGES_DIR + fileName + "_contours.jpg", results);
-            
             // -------------------------------------------------------------------------------------------
             if(!bIoUTestMode){
                 // --------------------------------- START CLASSIFICATION -----------------------------------
-                if(!std::filesystem::exists(DATASET_BBOX_DIR)) std::filesystem::create_directories(DATASET_BBOX_DIR);
-                std::string outputFileName = DATASET_BBOX_DIR + fileName + "_bb.txt";
-                std::ofstream outputFile(outputFileName);
-                if(!outputFile.is_open()) {
-                    std::cerr << "[Cropper] Error: Unable to open file for writing: " << outputFileName << std::endl;
-                    return {};
-                }
                 
                 // foreach waterBox, crop the image and classify it
                 std::vector<std::pair<cv::Rect, Classifier_Output>> classifications;
@@ -135,9 +127,6 @@ int main(int argc, char* argv[]) {
                     // Write box coordinates and label to file
                     outputFile << box.x << " " << box.y << " " << box.width << " " << box.height << " " << output.label << "\n";
                 }
-
-                outputFile.close();
-                std::cout << "[Cropper] WaterBoxes written to file: " << outputFileName << std::endl;
 
                 // Draw and paint entries rects
                 cv::Mat result = test_image.clone();
@@ -165,7 +154,7 @@ int main(int argc, char* argv[]) {
             }
             else {
                 // --------------------------------- START IoU COMPUTATION -----------------------------------
-                // Upload file and get original dataset bounding boxes
+                // Get dataset bounding boxes
                 std::vector<Parser::GT_Entry> entries;
                 std::cout << dataset_gt_location.string() + fileName + ".txt" << std::endl;
                 Parser::parse_file(Parser::get_file_content(dataset_gt_location.string() + fileName + ".txt"), entries);
@@ -176,11 +165,16 @@ int main(int argc, char* argv[]) {
                     return 0;
                 }
 
+                // write waterboxes to file
+                for (const auto &box : waterBoxes){
+                    outputFile << box.x << " " << box.y << " " << box.width << " " << box.height << "\n";
+                }
+                
                 // Populate GT bounding boxes vector
                 std::vector<cv::Rect> GT_Bboxes;
-                for (const auto &entry : entries)
+                for (const auto &entry : entries){
                     GT_Bboxes.push_back(cv::boundingRect(entry.points));
-
+                }
                 // -------------------------------------------------------------------------------------------
                 // Compute IoU over acquired data
                 std::vector<double> out(Utils::compute_IoU(GT_Bboxes, waterBoxes));
@@ -203,6 +197,9 @@ int main(int argc, char* argv[]) {
 
                 // ---------------------------------- END IoU COMPUTATION ------------------------------------
             }
+            outputFile.close();
+            std::cout << "[Cropper] WaterBoxes written to file: " << outputFileName << std::endl;
+
         }
     }
 
