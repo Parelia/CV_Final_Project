@@ -16,14 +16,15 @@ _ = inference_model(dummy_input)
 
 inference_model.export("malaria_det_v2.onnx", format="onnx")
 
-model = onnx.load("malaria_det_v2.onnx")  
-for tensor in model.graph.initializer:     
-    if tensor.data_type == TensorProto.UINT64:         
-        tensor.data_type = TensorProto.INT32     
-    elif tensor.data_type == TensorProto.INT64:         
-        tensor.data_type = TensorProto.INT32  
+# In case OpenCV wants one with UINT32 tensors
+# model = onnx.load("malaria_det_v2.onnx")  
+# for tensor in model.graph.initializer:     
+#     if tensor.data_type == TensorProto.UINT64:         
+#         tensor.data_type = TensorProto.INT32     
+#     elif tensor.data_type == TensorProto.INT64:         
+#         tensor.data_type = TensorProto.INT32  
             
-onnx.save(model, "malaria_det_v2-32.onnx")
+# onnx.save(model, "malaria_det_v2-32.onnx")
 
 
 print("Clean inference model exported successfully!")
