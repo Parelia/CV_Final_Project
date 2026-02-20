@@ -3,6 +3,7 @@
     #  Author: Parussolo Elia   #
     #############################
 */
+
 #include "Cropper.h"
 #include <vector>
 #include <opencv2/core/types.hpp>
@@ -19,8 +20,6 @@ namespace Cropper {
             std::cerr << "[main] Error: test_image is empty\n";
             return {};
         }
-
-        // ---------------------------------- END VALIDATING INPUT -----------------------------------
         
         // --------------------------------- START IMAGE PROCESSING ----------------------------------
         // Cut image
@@ -146,4 +145,5 @@ namespace Cropper {
         );
         return waterBoxes;
     }
-} // namespace Cropper
+    
+}

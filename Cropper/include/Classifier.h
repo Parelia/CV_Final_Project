@@ -1,3 +1,9 @@
+/* 
+	###############################
+    #  Author: Gabriele Trevisan  #
+    ###############################
+*/
+
 #ifndef Classifier_h
 #define Classifier_h
 

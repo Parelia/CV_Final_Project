@@ -20,10 +20,6 @@
 #define DIR_ARG 1
 #define MODEL_ARG 2
 
-// Test mode (debug purpose):
-// CV_Final_Project_Cropper --test [dataset_img_location]
-// Normal mode:
-// CV_Final_Project_Cropper [input_image] [model_file] (optional: --quiet)
 
 int main(int argc, char* argv[]) {
     
@@ -49,7 +45,7 @@ int main(int argc, char* argv[]) {
             std::cout << "[Cropper] Using dataset location: " << dataset_img_location << std::endl;
             bIoUTestMode = true;
         } else {
-            // .Cropper <images dir> <Onnx model>
+            // ./Cropper <images dir> <Onnx model>
             // check if model file exists
             if(!std::filesystem::exists(argv[MODEL_ARG])) {
                 std::cerr << "[Cropper] Error: model file does not exist\n";
@@ -58,13 +54,13 @@ int main(int argc, char* argv[]) {
             dataset_img_location = std::string(argv[DIR_ARG]);
             model_location = std::string(argv[MODEL_ARG]);
         }
-    }else{
+    }
+    else {
         std::cout << "[Cropper] Usage:" << std::endl;
-        std::cout << "\t " + std::string(argv[0]) + " <dataset dir> --IoU: Generate andh show IoU report" << std::endl;
-        std::cout << "\t " + std::string(argv[0]) + " .Cropper <images dir> <Onnx model>: Generate andh show IoU report" << std::endl;
+        std::cout << "\t " + std::string(argv[0]) + " <dataset dir> --IoU: Generate and show IoU report" << std::endl;
+        std::cout << "\t " + std::string(argv[0]) + " <images dir> <Onnx model>: Generate and show IoU report" << std::endl;
         std::cout << std::endl;
     }
-
 
     if(!std::filesystem::exists(dataset_img_location)) {
         // print pwd
@@ -74,6 +70,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "[Cropper] Error: input path: " << std::filesystem::absolute(dataset_img_location) << std::endl;
         return -1;
     }
+
     Classifier classifier = Classifier();
     if(!bIoUTestMode) {
         try {
@@ -162,9 +159,9 @@ int main(int argc, char* argv[]) {
                 std::string outputImageName = "../OutputImages/Classifier/" + std::filesystem::path(img_path).stem().string() + "_result.jpg";
                 cv::imwrite(outputImageName, result);
                 std::cout << "[Cropper] Result image saved to: " << outputImageName << std::endl;
-            }else{
+            }
+            else {
                 // --------------------------------- START IoU COMPUTATION -----------------------------------
-
                 // Upload file and get original dataset bounding boxes
                 std::vector<Parser::GT_Entry> entries;
                 std::cout << dataset_gt_location.string() + fileName + ".txt" << std::endl;
@@ -203,8 +200,6 @@ int main(int argc, char* argv[]) {
 
                 // ---------------------------------- END IoU COMPUTATION ------------------------------------
             }
-
-            // Utils::img_show(result, "result with classifier", true);
         }
     }
 
@@ -215,9 +210,6 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "IoU over the whole dataset: " << std::to_string(sumOfIoUs / IoUs.size() * 100) << "%" << std::endl;
     }
-
-    int key;
-    while((key = cv::waitKey(0)) != 27 && key != -1); // 27 is ESC, -1 is window close
 
     return 0;
 }

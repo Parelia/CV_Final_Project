@@ -38,23 +38,6 @@ namespace Parser {
 
     // Compute output string with complete GT_Entry content
     std::string view_GT_Entry(const GT_Entry&);
-
-
-    // ------------------------------------- Classifier Entry ------------------------------------
-    struct Classifier_Entry{
-        bool infected;
-        double confidence;
-        cv::Rect rect;
-    };
-
-    // Parse an entry file of Classifier_Entry and save them on dst
-    void parse_file(const std::string&, std::vector<Classifier_Entry>&);
-    
-    // Parse a single Classifier_Entry entry
-    int parse_entry(const std::string&, Classifier_Entry&);
-
-    // Compute output string with complete Classifier_Entry content
-    std::string view_Classifier_Entry(const Classifier_Entry&);
 };
 
 
