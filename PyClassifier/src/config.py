@@ -6,7 +6,7 @@
 # -- dataset directories
 directory = "../../Malaria_Dataset_FromGT"
 save_directory = "../saved_model/"
-image_directory = '../../output_images/'
+image_directory = '../saved_model/results/'
 val_split = 0.2
 SEED = 123          # for reproducibility
 

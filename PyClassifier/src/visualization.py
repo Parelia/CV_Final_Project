@@ -124,3 +124,47 @@ def plot_cm(y_true, y_pred):
     plt.title('Confusion Matrix')
     save_plot("cm.png")
     plt.show()
+
+def plot_prediction_samples(test_set, y_true, y_pred, y_probs):
+    
+    # flatten
+    y_true = np.array(y_true).ravel()
+    y_pred = np.array(y_pred).ravel()
+    y_probs = np.array(y_probs).ravel()
+    
+    # get images
+    all_images = []
+    for x, _ in test_set:
+        all_images.append(x.numpy())
+    images = np.concatenate(all_images, axis=0)
+    
+    # fix rendering
+    images = np.clip(images, 0, 255).astype(np.uint8)
+    
+    # get indices
+    idx_corr_par = np.where((y_true == 1) & (y_pred == 1))[0]
+    idx_corr_unf = np.where((y_true == 0) & (y_pred == 0))[0]
+    idx_wrong    = np.where(y_true != y_pred)[0]
+
+    # 4 samples each
+    samples = [
+        (idx_corr_par[:4], "Correct Parasitized (True: 1, Pred: 1)"),
+        (idx_corr_unf[:4], "Correct Uninfected (True: 0, Pred: 0)"),
+        (idx_wrong[:4],    "Incorrect Predictions")
+    ]
+
+    fig = plt.figure(figsize=(16, 12))
+    
+    for row_idx, (indices, category) in enumerate(samples):
+        for col_idx, i in enumerate(indices):
+            ax = plt.subplot(3, 4, row_idx * 4 + col_idx + 1)
+            plt.imshow(images[i]) 
+            title = f"Actual: {int(y_true[i])} | Pred: {int(y_pred[i])}\nProb: {y_probs[i]:.4f}"
+            plt.title(title, fontsize=10, fontweight='bold')
+            plt.axis('off')
+            
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    # save image
+    save_plot("gt_predictions.png")
+    plt.show()

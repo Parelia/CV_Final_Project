@@ -56,8 +56,10 @@ def main():
 
     # evaluation
     vis.classification_report(y_true, y_pred)
+    vis.plot_prediction_samples(test_set, y_true, y_pred, y_probs)
     vis.plot_roc(y_true, y_probs)
     vis.plot_cm(y_true, y_pred)
+
 
 if __name__ == "__main__":
     main()
