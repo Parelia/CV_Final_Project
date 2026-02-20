@@ -167,7 +167,7 @@ def plot_prediction_samples(test_set, y_true, y_pred, y_probs):
             ax = plt.subplot(3, 4, row_idx * 4 + col_idx + 1)
             plt.imshow(images[i]) 
             
-            title = f"Actual: {int(y_true[i])} | Pred: {int(y_pred[i])}\nProb: {y_probs[i]:.4f}"
+            title = f"Actual: {int(y_true[i])} | Pred: {int(y_pred[i])}\nOutput: {y_probs[i]:.4f}"
             plt.title(title, fontsize=12)
             plt.axis('off')
             
