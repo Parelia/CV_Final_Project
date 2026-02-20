@@ -21,6 +21,10 @@
 #define MODEL_ARG 2
 
 
+const std::string OUTPUT_IMAGES_DIR = "../OutputImages/Cropper";
+const std::string OUTPUT_CLASSIFIER_DIR = "../OutputImages/Classifier/";
+const std::string DATASET_BBOX_DIR = "../Malaria_Dataset/BBox";
+
 int main(int argc, char* argv[]) {
     
     bool bIoUTestMode = false;
@@ -92,41 +96,33 @@ int main(int argc, char* argv[]) {
             // ----------------------------------- SAVE RESULT IMAGES ------------------------------------
             // Save waterboxes to .txt file
             std::string fileName = std::filesystem::path(img_path).stem().string();
-            if(!std::filesystem::exists("../Malaria_Dataset/BBox")) std::filesystem::create_directories("../Malaria_Dataset/BBox"); // ../ to exit build
-            std::string outputFileName = "../Malaria_Dataset/BBox/" + fileName + "_bb.txt";
-            std::ofstream outputFile(outputFileName);
-
-            if(!outputFile.is_open()) {
-                std::cerr << "[Cropper] Error: Unable to open file for writing: " << outputFileName << std::endl;
-                return {};
-            }
-
-            for(const auto& box : waterBoxes) {
-                outputFile << box.x << " " << box.y << " " 
-                        << box.width << " " << box.height << "\n";
-            }
-
-            outputFile.close();
-            std::cout << "[Cropper] WaterBoxes written to file: " << outputFileName << std::endl;
-        
-            if(!std::filesystem::exists("../OutputImages/Cropper")) std::filesystem::create_directories("../OutputImages/Cropper");
+            if(!std::filesystem::exists(OUTPUT_IMAGES_DIR)) std::filesystem::create_directories(OUTPUT_IMAGES_DIR);
 
             // Draw bounding boxes
             cv::Mat test_image = cv::imread(img_path.string());
             cv::Mat results = test_image.clone();
             for(const auto& box : waterBoxes)
                 cv::rectangle(results, box, cv::Scalar(0, 255, 0), 2);
-            cv::imwrite("../OutputImages/Cropper/" + fileName + "_boxes.jpg", results);
+            cv::imwrite(OUTPUT_IMAGES_DIR + fileName + "_boxes.jpg", results);
             
             // Draw borders
             results = test_image.clone();
             for(const auto& box : waterBoxes){
                 cv::rectangle(results, box, cv::Scalar(255, 0, 0), 2);
             }
-            cv::imwrite("../OutputImages/Cropper/" + fileName + "_contours.jpg", results);
+            cv::imwrite(OUTPUT_IMAGES_DIR + fileName + "_contours.jpg", results);
+            
             // -------------------------------------------------------------------------------------------
             if(!bIoUTestMode){
                 // --------------------------------- START CLASSIFICATION -----------------------------------
+                if(!std::filesystem::exists(DATASET_BBOX_DIR)) std::filesystem::create_directories(DATASET_BBOX_DIR);
+                std::string outputFileName = DATASET_BBOX_DIR + fileName + "_bb.txt";
+                std::ofstream outputFile(outputFileName);
+                if(!outputFile.is_open()) {
+                    std::cerr << "[Cropper] Error: Unable to open file for writing: " << outputFileName << std::endl;
+                    return {};
+                }
+                
                 // foreach waterBox, crop the image and classify it
                 std::vector<std::pair<cv::Rect, Classifier_Output>> classifications;
                 for(const auto& box : waterBoxes) {
@@ -135,7 +131,13 @@ int main(int argc, char* argv[]) {
                     classifications.push_back({box, output});
                     std::cout << "[Cropper] Box at (" << box.x << ", " << box.y << ", " << box.width << ", " << box.height << "): "
                             << output.label << " (" << output.probability * 100.0f << "%), Confidence: " << output.confidence << std::endl;
+
+                    // Write box coordinates and label to file
+                    outputFile << box.x << " " << box.y << " " << box.width << " " << box.height << " " << output.label << "\n";
                 }
+
+                outputFile.close();
+                std::cout << "[Cropper] WaterBoxes written to file: " << outputFileName << std::endl;
 
                 // Draw and paint entries rects
                 cv::Mat result = test_image.clone();
@@ -153,12 +155,13 @@ int main(int argc, char* argv[]) {
                 }
 
                 // Save images as [original_image_name]_result.jpg
-                if(!std::filesystem::exists("../OutputImages/Classifier/")) {
-                    std::filesystem::create_directory("../OutputImages/Classifier/");
+                if(!std::filesystem::exists(OUTPUT_CLASSIFIER_DIR)) {
+                    std::filesystem::create_directory(OUTPUT_CLASSIFIER_DIR);
                 }
-                std::string outputImageName = "../OutputImages/Classifier/" + std::filesystem::path(img_path).stem().string() + "_result.jpg";
+                std::string outputImageName = OUTPUT_CLASSIFIER_DIR + std::filesystem::path(img_path).stem().string() + "_result.jpg";
                 cv::imwrite(outputImageName, result);
                 std::cout << "[Cropper] Result image saved to: " << outputImageName << std::endl;
+                // ---------------------------------- END CLASSIFICATION ------------------------------------
             }
             else {
                 // --------------------------------- START IoU COMPUTATION -----------------------------------
@@ -203,6 +206,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // If on IoU test mode, compute and show the average IoU over the whole dataset
     if(bIoUTestMode){
         float sumOfIoUs = 0.0f;
         for (auto& n : IoUs){

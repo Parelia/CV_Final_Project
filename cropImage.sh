@@ -28,6 +28,16 @@ fi
 ./Cropper "$IMG_DIR" --IoU
 
 
+TEST_DIR="../Malaria_Dataset/CropperTest"
+
+# Check if the directory exists
+if [ ! -d "$TEST_DIR" ]; then
+  echo "Error: Directory $TEST_DIR not found."
+  exit 1
+fi
+./Cropper "$TEST_DIR" --IoU
+
+
 TEST_IMG_DIR="../Malaria_Dataset/CropperTest"
 DNN_MODEL="../PyClassifier/saved_model/malaria_det_v2.onnx"
 
