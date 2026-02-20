@@ -6,3 +6,4 @@ kaggle
 pyyaml
 h5py
 scikit-learn
+onnx
