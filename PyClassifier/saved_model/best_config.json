@@ -4,9 +4,11 @@
     "f1": 16,
     "f2": 32,
     "f3": 64,
+    "f4": 64,
     "drop_1": 0.2,
     "drop_2": 0.2,
     "drop_3": 0.3,
+    "drop_4": 0.1,
     "dense_units": 64,
     "drop_dense": 0.4,
     "learning_rate": 1e-3
