@@ -2,7 +2,6 @@ tensorflow[and-cuda]
 keras
 keras-tuner
 seaborn
-kaggle
 pyyaml
 h5py
 scikit-learn
