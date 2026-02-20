@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
                     Classifier_Output output = classifier.classify(cropped);
                     classifications.push_back({box, output});
                     std::cout << "[Cropper] Box at (" << box.x << ", " << box.y << ", " << box.width << ", " << box.height << "): "
-                            << output.label << " (" << output.probability * 100 << "%), Confidence: " << output.confidence << std::endl;
+                            << output.label << " (" << output.probability * 100.0f << "%), Confidence: " << output.confidence << std::endl;
                 }
 
                 // Draw and paint entries rects
@@ -201,7 +201,7 @@ int main(int argc, char* argv[]) {
                 std::cout << "Mean IoU overall: " << std::to_string(std::round(count / out.size() * 100000) / 1000) << "%" << std::endl;
                 IoUs.push_back(count / out.size());
 
-        // ---------------------------------- END IoU COMPUTATION ------------------------------------
+                // ---------------------------------- END IoU COMPUTATION ------------------------------------
             }
 
             // Utils::img_show(result, "result with classifier", true);

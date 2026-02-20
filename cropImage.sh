@@ -25,11 +25,11 @@ if [ ! -d "$IMG_DIR" ]; then
   echo "Error: Directory $IMG_DIR not found."
   exit 1
 fi
-./Cropper "$IMG_DIR" --IoU
+# ./Cropper "$IMG_DIR" --IoU
 
 
-TEST_IMG_DIR="../Malaria_Dataset/CropperTest/Img"
-DNN_MODEL="../PyClassifier/saved_model/malaria_det.onnx"
+TEST_IMG_DIR="../Malaria_Dataset/CropperTest"
+DNN_MODEL="../PyClassifier/saved_model/malaria_det_v2.onnx"
 
 # Check if the directory exists
 if [ ! -d "$TEST_IMG_DIR" ]; then
@@ -37,7 +37,7 @@ if [ ! -d "$TEST_IMG_DIR" ]; then
   exit 1
 fi
 
-# ./Cropper "$TEST_IMG_DIR" "$DNN_MODEL"
+./Cropper "$TEST_IMG_DIR" "$DNN_MODEL"
 
 echo "------------------------------------------"
 

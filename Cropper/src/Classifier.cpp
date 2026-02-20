@@ -1,6 +1,7 @@
 #include <iostream>
 #include <opencv2/dnn.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
 
 #include "Classifier.h"
 #include "Utils.h"
@@ -26,21 +27,49 @@ Classifier_Output Classifier::classify(const cv::Mat &img) {
         throw std::runtime_error("Model not loaded");
     }
 
-    // Resize and normalize (Standard OpenCV is HWC: Height, Width, Channels)
-    cv::Mat resized_img;
-    cv::resize(img, resized_img, cv::Size(256, 256));
-    
-    // Note: We keep it in BGR or convert to RGB depending on model needs. 
-    // Most Keras models need RGB.
-    cv::cvtColor(resized_img, resized_img, cv::COLOR_BGR2RGB); 
-    
-    // Wrap as 4D Blob with NHWC Layout [1, 256, 256, 3]
-    // We do NOT use blobFromImage here because it forces a transpose to NCHW.
-    int dimensions[4] = {1, 256, 256, 3};
+    //TODO: pulire!!!!!!!!!
+    /*cv::Mat resized, floatImg;
+    cv::resize(img, resized, cv::Size(256, 256));
+    cv::cvtColor(resized, resized, cv::COLOR_BGR2RGB); // Fix the BGR -> RGB swap
+    resized.convertTo(floatImg, CV_32FC3); // Model expects floats
 
-    cv::Mat blob = cv::Mat(4, dimensions, CV_32F, resized_img.data).clone();
+    // 2. Wrap the Mat in a 4D Blob WITHOUT rearranging channels
+    // The constructor: Mat(dims, sizes, type, data_pointer)
+    int sizes[] = {1, 256, 256, 3};
+    cv::Mat blob(4, sizes, CV_32F, floatImg.data);
 
-    model.setInput(blob);
+    // 3. Forward pass
+    model.setInput(blob, "keras_tensor_276");
+    cv::Mat output = model.forward("output_0");*/
+
+    // 1. Load image and resize
+    // cv::Mat img = cv::imread("cell.png");
+    cv::Mat resized;
+    cv::resize(img, resized, cv::Size(256, 256));
+
+    // 2. Convert Color (Essential!)
+    cv::cvtColor(resized, resized, cv::COLOR_BGR2RGB);
+
+    // 3. Convert to Float 
+    // IMPORTANT: Check if you need 1.0 or 1.0/255.0 here.
+    // Since your ONNX has a 'Mul' node, we use 1.0 (keep values 0-255).
+    cv::Mat floatImg;
+    resized.convertTo(floatImg, CV_32FC3, 1.0); 
+
+    // 4. Create a 4D Blob that is "Interleaved" (NHWC)
+    // We use the 'blobFromImages' (plural) or manual construction to avoid 
+    // the auto-transpose that happens in 'blobFromImage' (singular).
+    int sz[] = {1, 256, 256, 3};
+    cv::Mat inputBlob = cv::Mat(4, sz, CV_32F);
+
+    // Copy the data manually to ensure the memory layout is correct and persistent
+    memcpy(inputBlob.data, floatImg.data, floatImg.total() * floatImg.elemSize());
+
+    // 5. Run Inference
+    cv::Scalar meanVal = cv::mean(floatImg);
+
+    std::cout << "Input Mean (should be ~100-200 if 0-255 range): " << meanVal << std::endl;
+    model.setInput(inputBlob);
     cv::Mat output = model.forward();
 
     // ---------------------------------------------------------------------------------------
