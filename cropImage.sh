@@ -25,7 +25,7 @@ if [ ! -d "$IMG_DIR" ]; then
   echo "Error: Directory $IMG_DIR not found."
   exit 1
 fi
-# ./Cropper "$IMG_DIR" --IoU
+./Cropper "$IMG_DIR" --IoU
 
 
 TEST_IMG_DIR="../Malaria_Dataset/CropperTest"

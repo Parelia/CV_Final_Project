@@ -66,7 +66,7 @@ void DatasetBuilder::build_cropped_dataset(
         }
     }
 
-    // test set: no split, no augmentation
+    // test set: no split
     process_folder(
         cropperTestFolder, groundThruth,
         parasitizedOutputTest, uninfectedOutputTest,    // A = test

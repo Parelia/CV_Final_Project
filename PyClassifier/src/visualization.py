@@ -141,29 +141,37 @@ def plot_prediction_samples(test_set, y_true, y_pred, y_probs):
     # fix rendering
     images = np.clip(images, 0, 255).astype(np.uint8)
     
-    # get indices
-    idx_corr_par = np.where((y_true == 1) & (y_pred == 1))[0]
-    idx_corr_unf = np.where((y_true == 0) & (y_pred == 0))[0]
+    # 0 parasitized, 1 uninfected
+    idx_corr_par = np.where((y_true == 0) & (y_pred == 0))[0]
+    idx_corr_unf = np.where((y_true == 1) & (y_pred == 1))[0]
     idx_wrong    = np.where(y_true != y_pred)[0]
 
-    # 4 samples each
+    # take these positions
+    positions = [0, 3, 6, 9]
+    
+    # get them
+    samp_par = [idx_corr_par[p] for p in positions if p < len(idx_corr_par)]
+    samp_unf = [idx_corr_unf[p] for p in positions if p < len(idx_corr_unf)]
+    samp_wrong = [idx_wrong[p] for p in positions if p < len(idx_wrong)]
+
     samples = [
-        (idx_corr_par[:4], "Correct Parasitized (True: 1, Pred: 1)"),
-        (idx_corr_unf[:4], "Correct Uninfected (True: 0, Pred: 0)"),
-        (idx_wrong[:4],    "Incorrect Predictions")
+        (samp_par, "Correct Parasitized (True: 0, Pred: 0)"),
+        (samp_unf, "Correct Uninfected (True: 1, Pred: 1)"),
+        (samp_wrong, "Incorrect Predictions")
     ]
 
-    fig = plt.figure(figsize=(16, 12))
+    fig = plt.figure(figsize=(14, 10))
     
     for row_idx, (indices, category) in enumerate(samples):
         for col_idx, i in enumerate(indices):
             ax = plt.subplot(3, 4, row_idx * 4 + col_idx + 1)
             plt.imshow(images[i]) 
+            
             title = f"Actual: {int(y_true[i])} | Pred: {int(y_pred[i])}\nProb: {y_probs[i]:.4f}"
-            plt.title(title, fontsize=10, fontweight='bold')
+            plt.title(title, fontsize=12)
             plt.axis('off')
             
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.subplots_adjust(hspace=0.5, wspace=0.1)
     
     # save image
     save_plot("gt_predictions.png")
