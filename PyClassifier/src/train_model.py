@@ -132,12 +132,14 @@ def main():
     )
     vis.plot_learning_curves(history)
 
-    # save the resulting model
+    # save the resulting model and the weights as well
+    cnn.save_weights(os.path.join(config.save_directory, 'malaria_det.weights.h5'))
     save_path = os.path.join(config.save_directory, 'malaria_det.keras')
     if not os.path.exists(config.save_directory):
         print(f"Directory {config.save_directory} not found. Creating it...")
         os.makedirs(config.save_directory, exist_ok=True)
     keras.saving.save_model(cnn, save_path)
+    
     print(f'PRETRAINED model saved at {save_path}')
 
     print('Validation set report before optimal threshold')

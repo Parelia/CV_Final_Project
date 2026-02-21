@@ -10,6 +10,9 @@ import config
 import dataset as ds
 import visualization as vis
 import tensorflow as tf
+import model
+import json
+import keras_tuner as kt
 
 USE_TTA = True
 N_AUGMENTATIONS = 5
@@ -38,8 +41,29 @@ def main():
     print(f'Evaluating model with threshold: {threshold}')
 
     # load model
-    model_name = sys.argv[2]  if len(sys.argv) > 2 else 'malaria_det.keras'
-    cnn = keras.models.load_model(os.path.join(config.save_directory, model_name))
+    model_name = sys.argv[2] if len(sys.argv) > 2 else 'malaria_det.keras'
+    model_path = os.path.join(config.save_directory, model_name)
+    
+    # for compatibility
+    if model_name.endswith('.weights.h5'):
+        print(f"Loading weights from {model_name} using best_config.json...")
+        
+        # create the model
+        save_path = os.path.join(config.save_directory, 'best_config.json')
+        with open(save_path, 'r') as f:
+            loaded_hp_dict = json.load(f)
+            
+        hp = kt.HyperParameters()
+        for key, value in loaded_hp_dict.items():
+            hp.Fixed(key, value) # treat it as if it was an optimizer choice
+            
+        builder = model.make_builder()
+        cnn = builder(hp)
+        cnn.load_weights(model_path)
+    else:
+        print(f"Loading model from {model_name}...")
+        cnn = keras.models.load_model(model_path)
+        
     cnn.summary()
 
     # load test set
